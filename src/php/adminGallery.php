@@ -29,7 +29,7 @@
 		}
 		#crop-frame {
 			width: min(92vw, 780px);
-			aspect-ratio: 2 / 1;
+			aspect-ratio: 1079 / 750;
 			position: relative;
 			overflow: hidden;
 			cursor: grab;
@@ -300,9 +300,9 @@ function confirmCrop() {
 	var frameH = cropFrame.offsetHeight;
 
 	// Scale: how many original pixels per frame display pixel
-	// Canvas is always origH*2 × origH; frame displays that at frameW × frameH
-	var scaleX = (cropOrigH * 2) / frameW;
-	var scaleY =  cropOrigH      / frameH;
+	// Canvas is origH*(1079/750) × origH; frame displays that at frameW × frameH
+	var scaleX = (cropOrigH * 1079 / 750) / frameW;
+	var scaleY =  cropOrigH               / frameH;
 
 	// Image position and size in canvas coordinates (full original resolution)
 	var imgCanvasX = Math.round(cropImgX * scaleX);
@@ -312,7 +312,7 @@ function confirmCrop() {
 
 	// Cap output canvas at 2160px wide (2× display width) — phone photos can be
 	// 6000+ px which exhausts ImageMagick cache on the Pi. All coords scale together.
-	var rawCanvasW = cropOrigH * 2;
+	var rawCanvasW = Math.round(cropOrigH * 1079 / 750);
 	var rawCanvasH = cropOrigH;
 	var outputScale = Math.min(1, 2160 / rawCanvasW);
 
