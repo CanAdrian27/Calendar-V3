@@ -1,0 +1,28 @@
+<?php
+// Default word list — used when word/wordlist.json has not been created yet.
+$defaultWords = [
+	'ephemeral','serendipity','mellifluous','luminous','eloquent',
+	'tenacious','perspicacious','ebullient','sanguine','laconic',
+	'petrichor','sempiternal','halcyon','iridescent','loquacious',
+	'vicarious','effulgent','resilience','euphoria','epiphany',
+	'quixotic','labyrinthine','sonorous','diaphanous','pellucid',
+	'crepuscular','penumbra','susurrus','ineffable','incandescent',
+	'benevolent','magnanimous','altruistic','empathy','whimsical',
+	'fortuitous','propitious','auspicious','serendipitous','felicitous',
+	'audacious','dauntless','intrepid','valiant','stalwart',
+	'sagacious','astute','discerning','perspicuous','acumen',
+	'vivacious','exuberant','effervescent','buoyant','jubilant',
+	'serene','tranquil','placid','equanimity','composure',
+	'nostalgia','reverie','wanderlust','solace','idyllic',
+	'tenacity','perseverance','fortitude','resolute','steadfast',
+	'candor','sincere','genuine','authentic','forthright',
+	'eloquence','articulate','verbose','succinct','pithy',
+	'camaraderie','convivial','gregarious','amicable','affable',
+	'curiosity','inquisitive','studious','erudite','scholarly',
+	'luminescence','phosphorescence','iridescence','opalescent','gossamer',
+	'ephemeron','palimpsest','caesura','liminal','confluence',
+	'esoteric','ubiquitous','quintessential','paradigm','catalyst',
+	'momentum','synergy','symbiosis','equilibrium','renaissance',
+	'zeitgeist','panacea','conundrum','labyrinth','chimera',
+	'melancholy','ethereal','verisimilitude','protagonist','nemesis',
+];

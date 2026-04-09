@@ -1,0 +1,529 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&display=swap');
+
+
+html, body {
+background-color: var(--ae-generic-background);
+color: var(--ae-generic-color);
+background-size: cover;
+background-repeat: no-repeat;
+}
+#blurLayer,#weather,#ski,#quote {
+  background-color: var(--ae-blur-overlay);
+}
+#overlayStack {
+  position: absolute;
+  z-index: 10;
+  left: 0;
+  top: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+#bottomBox, .hour_box, #hourlyWeather
+{
+  border-color: var(--ae-generic-border);
+}
+
+
+/* :root {
+  --fc-small-font-size:3.85em;
+} */
+
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: 'IBM Plex Sans',"Noto Color Emoji", "Segoe UI Emoji", sans-serif;
+}
+
+#calendar {
+  margin: 0px 0px;
+  margin-top: -178px;
+  padding: 0px 15px 2px 15px;
+}
+
+.fc .fc-toolbar-title {
+	font-size: 7em;
+	font-family: 'IBM Plex Sans';
+	margin: 0;
+}
+
+.fc .fc-daygrid-day-number {
+	font-size: 30px;
+	font-weight: bolder;
+	left: -3px;
+	line-height: 30px;
+	padding-top: 0px;
+}
+
+.fc-direction-ltr .fc-daygrid-event.fc-event-end, .fc-direction-rtl .fc-daygrid-event.fc-event-start {
+	font-size: 12px;
+}
+.fc-daygrid-event-dot {
+	display: none;
+}
+
+.fc-daygrid-dot-event .fc-event-title {
+	white-space: normal;
+}
+
+#photoContain {
+	width: 100%;
+	height: 540px;
+	position: relative;
+	overflow: hidden;
+}
+#photo
+{
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	object-position: center center;
+	display: block;
+
+	  mask-image: -moz-linear-gradient(0deg, rgba(9,9,121,0) 7%, rgba(0,0,0,1) 27%);
+	  mask-image: -webkit-linear-gradient(0deg, rgba(9,9,121,0) 7%, rgba(0,0,0,1)) 27%);
+	  mask-image: linear-gradient(0deg, rgba(9,9,121,0) 7%, rgba(0,0,0,1) 27%);
+
+	  -webkit-mask-image: -moz-linear-gradient(0deg, rgba(9,9,121,0) 7%, rgba(0,0,0,1) 27%);
+	  -webkit-mask-image: -webkit-linear-gradient(0deg, rgba(9,9,121,0) 7%, rgba(0,0,0,1)) 27%);
+	  -webkit-mask-image: linear-gradient(0deg, rgba(9,9,121,0) 7%, rgba(0,0,0,1) 27%);
+}
+
+#photo.photo-recipe {
+	width: 100%;
+	object-fit: cover;
+	display: block;
+}
+
+
+#blurLayer {
+	backdrop-filter: blur(30px);
+	float: left;
+	width: 100%;
+}
+
+
+
+
+#weather
+{
+	position: absolute;
+	z-index: 10;
+	right: 0px;
+	bottom: 140px;
+	text-align: right;
+	padding: 40px;
+}
+
+#cw_icon_big
+{
+	font-size: 100px;
+}
+#clock {
+	font-family: 'IBM Plex Sans', sans-serif;
+	font-size: 56px;
+	font-weight: 700;
+	font-style: normal;
+	line-height: 1;
+	display: block;
+	margin-top: 10px;
+	padding: 8px 16px;
+	background-color: var(--ae-blur-overlay);
+	text-align: center;
+}
+
+#cw_temp_contain
+{
+	font-size: 50px;
+}
+#cw_wind_contain
+{
+	font-size: 23px;
+	margin-bottom: 11px;
+}
+#time_of_weather
+{
+	font-size: 7px;
+}
+
+.weatherInABox
+{
+	/* border: 1px solid #fff; */
+	position: absolute;
+	left: 0px;
+	width: 70%;
+	height: 15%;
+}
+.dw_icon_small {
+	font-size: 22px;
+	margin-left: 5px;
+	padding-top: 8px;
+	float: left;
+}
+.dw_temp_contain
+{
+	float: left;
+	font-size: 13px;
+	margin-left: 5px;
+}
+.dw_lower_box
+{
+	width: 100%;
+	position: absolute;
+	bottom: 0;
+	min-height: 10px;
+	font-size: 11px;
+}
+.dw_sun_contain
+{
+	float: left;
+	padding: 3px;
+}
+.dw_precip_contain
+{
+	float: right;
+	padding: 3px;
+	text-align: right;
+}
+#lastupdated {
+	float: right;
+}
+#quote {
+	padding: 12px 16px;
+	font-family: 'IBM Plex Sans', sans-serif;
+	font-style: italic;
+	font-size: 18px;
+	width: 100%;
+	box-sizing: border-box;
+}
+#quote .quote-author {
+	font-family: 'IBM Plex Sans', sans-serif;
+	font-weight: 600;
+	font-size: 11px;
+	display: block;
+	margin-top: 6px;
+}
+#word {
+	width: 100%;
+	margin-top: 1px;
+}
+.word-row {
+	display: flex;
+	gap: 10px;
+	padding: 8px 16px;
+	align-items: flex-start;
+	background-color: var(--ae-blur-overlay);
+}
+.word-box {
+	padding: 0 12px;
+	font-family: 'IBM Plex Sans', sans-serif;
+}
+.word-box-en,
+.word-box-fr,
+.word-box-es {
+	flex: 1;
+}
+.word-title {
+	font-size: 22px;
+	font-weight: 700;
+	letter-spacing: 0.02em;
+}
+.word-phonetic {
+	font-size: 11px;
+	font-style: italic;
+	opacity: 0.75;
+	margin-left: 6px;
+}
+.word-pos {
+	font-size: 10px;
+	font-style: italic;
+	opacity: 0.65;
+	margin-left: 4px;
+}
+.word-definition {
+	font-size: 13px;
+	margin-top: 3px;
+	line-height: 1.4;
+}
+.fc-theme-standard td, .fc-theme-standard th {
+	border: 0.5px dotted var(--fc-border-color);
+}
+#screenContain
+{
+	width: 1079px;
+	height: 1915px;
+}
+#BottomBox
+{
+	width: 100%;
+	float: left;
+	min-height:194px;
+ }
+ #hourlyWeather
+ {
+	 width: 95%;
+	 margin: auto;
+	 border-top: 1px solid;
+	 padding-top: 10px;
+	 position: relative;
+	 container-type: inline-size;
+ }
+ .hour_box {
+	 float: left;
+	 text-align: center;
+	 width: 8.33%
+ }
+ .hour_feelslike
+ {
+	 font-size: 6px;
+ }
+ .hour_icon 
+ {
+ 	font-size: 40px;
+	padding: 13px 0px;
+ }
+ .hour_precip
+ {
+	 padding-top: 13px;
+ }
+.cal_0, .cal_0 > .fc-h-event, .cal_0 > .fc-event-main {
+   background-color: var(--ae-cal0-color) !important;
+   border-color: var(--ae-cal0-color) !important;
+   color: var(--ae-com0-color) !important;
+ }
+ 
+ .cal_1, .cal_1 > .fc-h-event, .cal_1 > .fc-event-main {
+   background-color: var(--ae-cal1-color) !important;
+   border-color: var(--ae-cal1-color) !important;
+   color: var(--ae-com1-color) !important;
+ }
+ 
+ .cal_2, .cal_2 > .fc-h-event, .cal_2 > .fc-event-main {
+   background-color: var(--ae-cal2-color) !important;
+   border-color: var(--ae-cal2-color) !important;
+   color: var(--ae-com2-color) !important;
+ }
+ 
+ .cal_3, .cal_3 > .fc-h-event, .cal_3 > .fc-event-main {
+   background-color: var(--ae-cal3-color) !important;
+   border-color: var(--ae-cal3-color) !important;
+   color: var(--ae-com3-color) !important;
+ }
+ 
+ .cal_4, .cal_4 > .fc-h-event, .cal_4 > .fc-event-main {
+   background-color: var(--ae-cal4-color) !important;
+   border-color: var(--ae-cal4-color) !important;
+   color: var(--ae-com4-color) !important;
+ }
+ 
+ .cal_5, .cal_5 > .fc-h-event, .cal_5 > .fc-event-main {
+   background-color: var(--ae-cal5-color) !important;
+   border-color: var(--ae-cal5-color) !important;
+   color: var(--ae-com5-color) !important;
+ }
+ 
+ .cal_6, .cal_6 > .fc-h-event, .cal_6 > .fc-event-main {
+   background-color: var(--ae-cal6-color) !important;
+   border-color: var(--ae-cal6-color) !important;
+   color: var(--ae-com6-color) !important;
+ }
+ 
+ .cal_7, .cal_7 > .fc-h-event, .cal_7 > .fc-event-main {
+   background-color: var(--ae-cal7-color) !important;
+   border-color: var(--ae-cal7-color) !important;
+   color: var(--ae-com7-color) !important;
+ }
+ 
+ .cal_8, .cal_8 > .fc-h-event, .cal_8 > .fc-event-main {
+   background-color: var(--ae-cal8-color) !important;
+   border-color: var(--ae-cal8-color) !important;
+   color: var(--ae-com8-color) !important;
+ }
+ 
+ .cal_9, .cal_9 > .fc-h-event, .cal_9 > .fc-event-main {
+   background-color: var(--ae-cal9-color) !important;
+   border-color: var(--ae-cal9-color) !important;
+   color: var(--ae-com9-color) !important;
+ }
+
+.colorblock
+{
+	width: 100px;
+	height: 100px;
+	float: left;
+}
+.colorset
+{
+	width: 100%;
+	float: left;
+}
+
+.fc-h-event .fc-event-main
+{
+	color: unset;
+}
+
+.fc-daygrid-day-frame:has(>.fc-daygrid-day-events>.fc-daygrid-event-harness> .cal_0)
+ {
+   background-color: var(--ae-holiday-color);
+ }
+ 
+ .fc-day-sun, .fc-day-sat
+ {
+   background-color: var(--ae-holiday-color); 
+ }
+ 
+.hockey {
+	 font-size: 10px !important;
+ }
+ 
+.fc-day-today
+ {
+	 border : var(--fc-today-border) !important;
+ }
+ 
+ .school_days {
+	 width: auto;
+	 position: absolute;
+	 top: -14px;
+	 right: -2px;
+	 background-color: transparent;
+	 border: 0px solid transparent;
+ }
+ 
+ .school_gym {
+	 display: none;
+ }
+ 
+div:has(>.fc-daygrid-event-harness> a.school_gym)::after {
+	  content: "GYM";
+	  color: var(--fc-today-border);
+	  text-align: center;
+	  width: 100%;
+ }
+
+.fc-daygrid-event-harness
+{
+	margin-top: 0px !important;
+}
+.fc-v-event .fc-event-title {
+	bottom: 0px;
+	max-height: 100%;
+	overflow: hidden;
+	top: 0px;
+	font-size: xx-small;
+}
+
+
+#ski
+{
+	position: absolute;
+	z-index: 10;
+	left: 0px;
+	top: 0px;
+	text-align: left;
+	padding: 10px;
+	font-size: 11px;
+}
+
+body.recipe-view #ski,
+body.recipe-view #weather
+{
+	display: none;
+}
+
+.ski_hill_element
+{
+	width: 52px;
+	display: block;
+	float: left;
+	line-height: 14px;
+	text-align: right;
+}
+.ski_hill_name
+{
+	text-align: left;
+	width: 103px;
+	font-size: 11px;
+	font-weight: bold;
+}
+#ski_hill_row-title
+{
+	width: 100%;
+	font-size: 20px;
+	text-align: center;
+	border-bottom: 1px solid var(--ae-generic-color);
+}
+
+#recipeImageContain {
+	width: 100%;
+	height: 50vh;   
+	max-height: 400px;           /* Fixed vertical window */
+	overflow: hidden;           /* Hide anything outside the container */
+	float: left;
+	position: relative;
+}
+#recipeIngContain
+{
+	width: 50%;
+	line-height: 1;
+	float: left;
+}
+#recipeStepsContain
+{
+	width: 50%;
+	line-height: 1;
+	float: left;
+}
+.fn-title 
+{
+	font-size: 8em;
+	font-family: "IBM Plex Sans";
+	margin: 0;
+	font-weight: 700;
+}
+.rec-title
+{
+	padding-top: 80px;
+	font-size: 4em;
+	font-family: "IBM Plex Sans";
+	margin: 0;
+	font-weight: 700;
+}
+#fn-body {
+	position: relative;
+	height: 100%;
+}
+#notes-qr {
+	position: absolute;
+	top: 16px;
+	right: 16px;
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+}
+.qr-item {
+	text-align: center;
+}
+.notes-qr-label {
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.05em;
+	text-transform: uppercase;
+	margin-top: 4px;
+	opacity: 0.6;
+}
+#recipeImageContain img {
+	width: 100%;                /* Stretch image to full container width */
+	height: auto;               /* Maintain aspect ratio */
+	position: absolute;
+	top: 50%;                   /* Center vertically */
+	transform: translateY(-50%); /* Shift upward by 50% of its height to center */
+}
+
+#recipeSteps>li {
+	margin-bottom: 20px;
+}
+#recipeIngredients>li {
+	margin-bottom: 20px;
+}

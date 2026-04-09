@@ -1,0 +1,11 @@
+{
+  "image_hour": 4,
+  "image_minute": 0,
+  "word_hour": 4,
+  "word_minute": 30,
+  "quote_hour": 4,
+  "quote_minute": 30,
+  "weather_interval_min": 30,
+  "calendar_interval_min": 1,
+  "ski_interval_min": 30
+}
