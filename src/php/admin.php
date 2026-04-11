@@ -14,8 +14,22 @@ $showword_es    = false;
 $showweekly     = false;
 $showmealie     = false;
 $shownotes      = false;
-$show_notes_qr  = true;
-$show_wifi_qr   = false;
+$show_notes_qr       = true;
+$show_wifi_qr        = false;
+$showcurrentweather  = true;
+$showwindspeed       = true;
+$showweathericon     = true;
+$showtemperature     = true;
+$showfeelslike_box   = false;
+$showfeelslike_combo = false;
+$showhourlyweather   = true;
+$showsunrisesunset   = true;
+$showmoonphase       = true;
+$showprecipqty       = true;
+$showprecipprob      = false;
+$showpreciphours     = false;
+$showuvindex         = false;
+$cal_languages       = ['en', 'fr'];
 $wifi_ssid      = '';
 $wifi_password  = '';
 $pi_base_url    = '';
@@ -54,8 +68,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	$newShowweekly     = isset($_POST['showweekly']);
 	$newShowmealie     = isset($_POST['showmealie']);
 	$newShownotes      = isset($_POST['shownotes']);
-	$newShowNotesQr    = isset($_POST['show_notes_qr']);
-	$newShowWifiQr     = isset($_POST['show_wifi_qr']);
+	$newShowNotesQr         = isset($_POST['show_notes_qr']);
+	$newShowWifiQr          = isset($_POST['show_wifi_qr']);
+	$newShowcurrentweather  = isset($_POST['showcurrentweather']);
+	$newShowwindspeed       = isset($_POST['showwindspeed']);
+	$newShowweathericon     = isset($_POST['showweathericon']);
+	$newShowtemperature     = isset($_POST['showtemperature']);
+	$newShowfeelslike_box   = isset($_POST['showfeelslike_box']);
+	$newShowfeelslike_combo = isset($_POST['showfeelslike_combo']);
+	$newShowhourlyweather   = isset($_POST['showhourlyweather']);
+	$newShowsunrisesunset   = isset($_POST['showsunrisesunset']);
+	$newShowmoonphase       = isset($_POST['showmoonphase']);
+	$newShowprecipqty       = isset($_POST['showprecipqty']);
+	$newShowprecipprob      = isset($_POST['showprecipprob']);
+	$newShowpreciphours     = isset($_POST['showpreciphours']);
+	$newShowuvindex         = isset($_POST['showuvindex']);
+	$newCalLanguages        = array_values(array_filter($_POST['cal_languages'] ?? []));
+	if (empty($newCalLanguages)) $newCalLanguages = ['en'];
 	$newWifiSsid       = trim($_POST['wifi_ssid']      ?? '');
 	$newWifiPassword   = trim($_POST['wifi_password']  ?? '');
 	$newPiBaseUrl      = rtrim(trim($_POST['pi_base_url'] ?? ''), '/');
@@ -74,8 +103,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	$php .= '$showweekly = '   . ($newShowweekly ? 'true' : 'false')    . ";\n";
 	$php .= '$showmealie = '   . ($newShowmealie ? 'true' : 'false')    . ";\n";
 	$php .= '$shownotes = '     . ($newShownotes   ? 'true' : 'false')   . ";\n";
-	$php .= '$show_notes_qr = ' . ($newShowNotesQr ? 'true' : 'false')  . ";\n";
-	$php .= '$show_wifi_qr = '  . ($newShowWifiQr  ? 'true' : 'false')  . ";\n";
+	$php .= '$show_notes_qr = '       . ($newShowNotesQr        ? 'true' : 'false') . ";\n";
+	$php .= '$show_wifi_qr = '        . ($newShowWifiQr         ? 'true' : 'false') . ";\n";
+	$php .= '$showcurrentweather = '  . ($newShowcurrentweather  ? 'true' : 'false') . ";\n";
+	$php .= '$showwindspeed = '       . ($newShowwindspeed       ? 'true' : 'false') . ";\n";
+	$php .= '$showweathericon = '     . ($newShowweathericon     ? 'true' : 'false') . ";\n";
+	$php .= '$showtemperature = '     . ($newShowtemperature     ? 'true' : 'false') . ";\n";
+	$php .= '$showfeelslike_box = '   . ($newShowfeelslike_box   ? 'true' : 'false') . ";\n";
+	$php .= '$showfeelslike_combo = ' . ($newShowfeelslike_combo ? 'true' : 'false') . ";\n";
+	$php .= '$showhourlyweather = '   . ($newShowhourlyweather   ? 'true' : 'false') . ";\n";
+	$php .= '$showsunrisesunset = '   . ($newShowsunrisesunset   ? 'true' : 'false') . ";\n";
+	$php .= '$showmoonphase = '       . ($newShowmoonphase       ? 'true' : 'false') . ";\n";
+	$php .= '$showprecipqty = '       . ($newShowprecipqty       ? 'true' : 'false') . ";\n";
+	$php .= '$showprecipprob = '      . ($newShowprecipprob      ? 'true' : 'false') . ";\n";
+	$php .= '$showpreciphours = '     . ($newShowpreciphours     ? 'true' : 'false') . ";\n";
+	$php .= '$showuvindex = '         . ($newShowuvindex         ? 'true' : 'false') . ";\n";
+	$php .= '$cal_languages = '       . var_export($newCalLanguages, true)          . ";\n";
 	$php .= '$wifi_ssid = '     . var_export($newWifiSsid,     true)     . ";\n";
 	$php .= '$wifi_password = ' . var_export($newWifiPassword, true)     . ";\n";
 	$php .= '$pi_base_url = '   . var_export($newPiBaseUrl,   true)     . ";\n\n";
@@ -94,8 +137,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		$showweekly     = $newShowweekly;
 		$showmealie     = $newShowmealie;
 		$shownotes      = $newShownotes;
-		$show_notes_qr  = $newShowNotesQr;
-		$show_wifi_qr   = $newShowWifiQr;
+		$show_notes_qr       = $newShowNotesQr;
+		$show_wifi_qr        = $newShowWifiQr;
+		$showcurrentweather  = $newShowcurrentweather;
+		$showwindspeed       = $newShowwindspeed;
+		$showweathericon     = $newShowweathericon;
+		$showtemperature     = $newShowtemperature;
+		$showfeelslike_box   = $newShowfeelslike_box;
+		$showfeelslike_combo = $newShowfeelslike_combo;
+		$showhourlyweather   = $newShowhourlyweather;
+		$showsunrisesunset   = $newShowsunrisesunset;
+		$showmoonphase       = $newShowmoonphase;
+		$showprecipqty       = $newShowprecipqty;
+		$showprecipprob      = $newShowprecipprob;
+		$showpreciphours     = $newShowpreciphours;
+		$showuvindex         = $newShowuvindex;
+		$cal_languages       = $newCalLanguages;
 		$wifi_ssid      = $newWifiSsid;
 		$wifi_password  = $newWifiPassword;
 		$pi_base_url    = $newPiBaseUrl;
@@ -158,50 +215,123 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	</div>
 
 	<div class="card">
-		<h2>Display Options</h2>
-		<div class="toggle-row">
-			<input type="checkbox" id="showski"    name="showski"    <?= $showski    ? 'checked' : '' ?>>
-			<label for="showski">Show ski conditions (Only Visible Nov. -> Mar.) </label>
+		<h2>Pages</h2>
+		<p class="card-hint">These add extra pages to the display rotation (cycle with the T key).</p>
+		<label style="margin-bottom:8px">Calendar language rotation <small style="font-weight:400;color:#888">— each load picks one at random with equal chance</small></label>
+		<div class="lang-grid">
+			<?php
+			$allLangs = ['en'=>'English','fr'=>'French','es'=>'Spanish','de'=>'German','it'=>'Italian','pt'=>'Portuguese'];
+			foreach ($allLangs as $code => $name):
+			?>
+			<div class="toggle-row">
+				<input type="checkbox" id="lang_<?= $code ?>" name="cal_languages[]" value="<?= $code ?>" <?= in_array($code, $cal_languages) ? 'checked' : '' ?>>
+				<label for="lang_<?= $code ?>"><?= $name ?></label>
+			</div>
+			<?php endforeach; ?>
 		</div>
-		<div class="toggle-row">
-			<input type="checkbox" id="showclock"  name="showclock"  <?= $showclock  ? 'checked' : '' ?>>
-			<label for="showclock">Show clock in weather area</label>
-		</div>
-		<div class="toggle-row">
-			<input type="checkbox" id="showquote"  name="showquote"  <?= $showquote  ? 'checked' : '' ?>>
-			<label for="showquote">Show daily quote</label>
-		</div>
-		<div class="toggle-row">
-			<input type="checkbox" id="showword"    name="showword"    <?= $showword    ? 'checked' : '' ?>>
-			<label for="showword">Show word of the day</label>
-		</div>
-		<div class="toggle-row" style="margin-left:26px">
-			<input type="checkbox" id="showword_fr" name="showword_fr" <?= $showword_fr ? 'checked' : '' ?>>
-			<label for="showword_fr">Include French translation</label>
-		</div>
-		<div class="toggle-row" style="margin-left:26px">
-			<input type="checkbox" id="showword_es" name="showword_es" <?= $showword_es ? 'checked' : '' ?>>
-			<label for="showword_es">Include Spanish translation</label>
-		</div>
+		<hr class="section-divider">
 		<div class="toggle-row">
 			<input type="checkbox" id="showweekly" name="showweekly" <?= $showweekly ? 'checked' : '' ?>>
-			<label for="showweekly">Include weekly calendar view</label>
+			<label for="showweekly">Weekly calendar view</label>
 		</div>
 		<div class="toggle-row">
 			<input type="checkbox" id="showmealie" name="showmealie" <?= $showmealie ? 'checked' : '' ?>>
-			<label for="showmealie">Include Mealie recipe page</label>
+			<label for="showmealie">Mealie recipe page</label>
 		</div>
 		<div class="toggle-row">
-			<input type="checkbox" id="shownotes"      name="shownotes"      <?= $shownotes      ? 'checked' : '' ?>>
-			<label for="shownotes">Include notes page</label>
+			<input type="checkbox" id="shownotes" name="shownotes" <?= $shownotes ? 'checked' : '' ?>>
+			<label for="shownotes">Notes page</label>
 		</div>
 		<div class="toggle-row" style="margin-left:26px">
-			<input type="checkbox" id="show_notes_qr"  name="show_notes_qr"  <?= $show_notes_qr  ? 'checked' : '' ?>>
+			<input type="checkbox" id="show_notes_qr" name="show_notes_qr" <?= $show_notes_qr ? 'checked' : '' ?>>
 			<label for="show_notes_qr">Show "Edit Notes" QR code on notes page</label>
 		</div>
 		<div class="toggle-row" style="margin-left:26px">
-			<input type="checkbox" id="show_wifi_qr"   name="show_wifi_qr"   <?= $show_wifi_qr   ? 'checked' : '' ?>>
+			<input type="checkbox" id="show_wifi_qr" name="show_wifi_qr" <?= $show_wifi_qr ? 'checked' : '' ?>>
 			<label for="show_wifi_qr">Show WiFi QR code on notes page</label>
+		</div>
+	</div>
+
+	<div class="card">
+		<h2>Widgets</h2>
+		<p class="card-hint">These show or hide elements displayed on the calendar page.</p>
+		<div class="toggle-row">
+			<input type="checkbox" id="showcurrentweather" name="showcurrentweather" <?= $showcurrentweather ? 'checked' : '' ?>>
+			<label for="showcurrentweather">Current weather</label>
+		</div>
+		<div class="toggle-row" style="margin-left:26px">
+			<input type="checkbox" id="showwindspeed" name="showwindspeed" <?= $showwindspeed ? 'checked' : '' ?>>
+			<label for="showwindspeed">Wind speed</label>
+		</div>
+		<div class="toggle-row" style="margin-left:26px">
+			<input type="checkbox" id="showweathericon" name="showweathericon" <?= $showweathericon ? 'checked' : '' ?>>
+			<label for="showweathericon">Weather icon</label>
+		</div>
+		<div class="toggle-row" style="margin-left:26px">
+			<input type="checkbox" id="showtemperature" name="showtemperature" <?= $showtemperature ? 'checked' : '' ?>>
+			<label for="showtemperature">Temperature</label>
+		</div>
+		<div class="toggle-row" style="margin-left:52px">
+			<input type="checkbox" id="showfeelslike_box" name="showfeelslike_box" <?= $showfeelslike_box ? 'checked' : '' ?>>
+			<label for="showfeelslike_box">Feels-like — own box</label>
+		</div>
+		<div class="toggle-row" style="margin-left:52px">
+			<input type="checkbox" id="showfeelslike_combo" name="showfeelslike_combo" <?= $showfeelslike_combo ? 'checked' : '' ?>>
+			<label for="showfeelslike_combo">Feels-like — combined with temperature <small style="font-weight:400;color:#888">(e.g. 10°C / 8°C)</small></label>
+		</div>
+		<div class="toggle-row">
+			<input type="checkbox" id="showclock" name="showclock" <?= $showclock ? 'checked' : '' ?>>
+			<label for="showclock">Clock</label>
+		</div>
+		<div class="toggle-row">
+			<input type="checkbox" id="showhourlyweather" name="showhourlyweather" <?= $showhourlyweather ? 'checked' : '' ?>>
+			<label for="showhourlyweather">Hourly weather strip</label>
+		</div>
+		<div class="toggle-row">
+			<input type="checkbox" id="showski" name="showski" <?= $showski ? 'checked' : '' ?>>
+			<label for="showski">Ski conditions <small style="font-weight:400;color:#888">(Nov. – Mar. only)</small></label>
+		</div>
+		<div class="toggle-row">
+			<input type="checkbox" id="showquote" name="showquote" <?= $showquote ? 'checked' : '' ?>>
+			<label for="showquote">Daily quote</label>
+		</div>
+		<div class="toggle-row">
+			<input type="checkbox" id="showword" name="showword" <?= $showword ? 'checked' : '' ?>>
+			<label for="showword">Word of the day</label>
+		</div>
+		<div class="toggle-row" style="margin-left:26px">
+			<input type="checkbox" id="showword_fr" name="showword_fr" <?= $showword_fr ? 'checked' : '' ?>>
+			<label for="showword_fr">French translation</label>
+		</div>
+		<div class="toggle-row" style="margin-left:26px">
+			<input type="checkbox" id="showword_es" name="showword_es" <?= $showword_es ? 'checked' : '' ?>>
+			<label for="showword_es">Spanish translation</label>
+		</div>
+		<hr class="section-divider">
+		<label style="margin-bottom:10px;display:block">Calendar day boxes</label>
+		<div class="toggle-row" style="margin-left:26px">
+			<input type="checkbox" id="showsunrisesunset" name="showsunrisesunset" <?= $showsunrisesunset ? 'checked' : '' ?>>
+			<label for="showsunrisesunset">Sunrise &amp; sunset</label>
+		</div>
+		<div class="toggle-row" style="margin-left:52px">
+			<input type="checkbox" id="showmoonphase" name="showmoonphase" <?= $showmoonphase ? 'checked' : '' ?>>
+			<label for="showmoonphase">Moon phase icons</label>
+		</div>
+		<div class="toggle-row" style="margin-left:26px">
+			<input type="checkbox" id="showprecipqty" name="showprecipqty" <?= $showprecipqty ? 'checked' : '' ?>>
+			<label for="showprecipqty">Precipitation quantity</label>
+		</div>
+		<div class="toggle-row" style="margin-left:26px">
+			<input type="checkbox" id="showprecipprob" name="showprecipprob" <?= $showprecipprob ? 'checked' : '' ?>>
+			<label for="showprecipprob">Precipitation probability</label>
+		</div>
+		<div class="toggle-row" style="margin-left:26px">
+			<input type="checkbox" id="showpreciphours" name="showpreciphours" <?= $showpreciphours ? 'checked' : '' ?>>
+			<label for="showpreciphours">Precipitation hours</label>
+		</div>
+		<div class="toggle-row" style="margin-left:26px">
+			<input type="checkbox" id="showuvindex" name="showuvindex" <?= $showuvindex ? 'checked' : '' ?>>
+			<label for="showuvindex">UV index</label>
 		</div>
 	</div>
 

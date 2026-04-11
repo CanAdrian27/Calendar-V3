@@ -49,6 +49,9 @@
 		border-color: #4f6ef7;
 		box-shadow: 0 0 0 3px rgba(79,110,247,.15);
 	}
+	.card-hint { margin: -6px 0 14px; font-size: 13px; color: #888; }
+	.lang-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 16px; margin-bottom: 4px; }
+	.section-divider { border: none; border-top: 1px solid #e4e7ec; margin: 16px 0; }
 	.toggle-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
 	.toggle-row input[type=checkbox] { width: 16px; height: 16px; margin: 0; }
 	.toggle-row label { margin: 0; font-weight: 500; font-size: 14px; }

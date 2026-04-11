@@ -7,8 +7,7 @@ var webpack = require("webpack");
 
 
 module.exports = {
-  mode: 'development',
-  devtool: 'source-map',
+  mode: 'production',
   entry: './src/js/index.js',
 
   module: {

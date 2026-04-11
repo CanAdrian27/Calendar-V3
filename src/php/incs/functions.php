@@ -22,7 +22,7 @@ function calColorSet($color,$alpha)
 				$colourKey = $color->getRgb();
 				$string .=  '
 				--fc-today-bg-color: rgba('.$colourKey['R'].','.$colourKey['G'].','.$colourKey['B'].','.$alpha.');
-				--fc-today-border: 2px solid #000;
+				--fc-today-border: 3px solid #000;
 				--fc-event-border-color:rgba('.$colourKey['R'].','.$colourKey['G'].','.$colourKey['B'].','.$alpha.');
 				--ae-holiday-color:rgba('.$colourKey['R'].','.$colourKey['G'].','.$colourKey['B'].','.($alpha*.5).');
 				';
@@ -44,7 +44,7 @@ function calColorSet($color,$alpha)
 				$colourKey = $color->getRgb();
 				$string .=  '
 				--fc-today-bg-color: rgba('.$colourKey['R'].','.$colourKey['G'].','.$colourKey['B'].','.$alpha.');
-				--fc-today-border: 2px solid #fff;
+				--fc-today-border: 3px solid #fff;
 				--fc-event-border-color:rgba('.$colourKey['R'].','.$colourKey['G'].','.$colourKey['B'].','.$alpha.');
 				--ae-holiday-color:rgba('.$colourKey['R'].','.$colourKey['G'].','.$colourKey['B'].','.($alpha*.5).');
 				';

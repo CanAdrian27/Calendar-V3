@@ -16,11 +16,12 @@ if (!$weather) {
 // Normalize new API format (current/weather_code) to old format (current_weather/weathercode)
 if (isset($weather->current) && !isset($weather->current_weather)) {
   $weather->current_weather = (object)[
-    'time'        => $weather->current->time,
-    'temperature' => $weather->current->temperature_2m,
-    'windspeed'   => $weather->current->wind_speed_10m,
-    'winddirection' => $weather->current->wind_direction_10m ?? null,
-    'weathercode' => $weather->current->weather_code,
+    'time'                 => $weather->current->time,
+    'temperature'          => $weather->current->temperature_2m,
+    'apparent_temperature' => $weather->current->apparent_temperature ?? null,
+    'windspeed'            => $weather->current->wind_speed_10m,
+    'winddirection'        => $weather->current->wind_direction_10m ?? null,
+    'weathercode'          => $weather->current->weather_code,
   ];
 }
 if (isset($weather->hourly->weather_code)) {
@@ -39,7 +40,20 @@ if (!isset($weather->current_weather) || !isset($weather->daily)) {
 }
 
 $weather = convertWeatherCodesToIcons($weather);
-$weather->showclock = !empty($showclock);
+$weather->showclock            = !empty($showclock);
+$weather->showcurrentweather  = isset($showcurrentweather)  ? (bool)$showcurrentweather  : true;
+$weather->showwindspeed        = isset($showwindspeed)       ? (bool)$showwindspeed       : true;
+$weather->showweathericon      = isset($showweathericon)     ? (bool)$showweathericon     : true;
+$weather->showtemperature      = isset($showtemperature)     ? (bool)$showtemperature     : true;
+$weather->showfeelslike_box    = isset($showfeelslike_box)   ? (bool)$showfeelslike_box   : false;
+$weather->showfeelslike_combo  = isset($showfeelslike_combo) ? (bool)$showfeelslike_combo : false;
+$weather->showhourlyweather    = isset($showhourlyweather)   ? (bool)$showhourlyweather   : true;
+$weather->showsunrisesunset    = isset($showsunrisesunset)   ? (bool)$showsunrisesunset   : true;
+$weather->showmoonphase        = isset($showmoonphase)        ? (bool)$showmoonphase        : true;
+$weather->showprecipqty        = isset($showprecipqty)       ? (bool)$showprecipqty       : true;
+$weather->showprecipprob       = isset($showprecipprob)      ? (bool)$showprecipprob      : false;
+$weather->showpreciphours      = isset($showpreciphours)     ? (bool)$showpreciphours     : false;
+$weather->showuvindex          = isset($showuvindex)         ? (bool)$showuvindex         : false;
 echo json_encode($weather);
 
 
