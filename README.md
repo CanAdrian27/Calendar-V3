@@ -10,128 +10,286 @@ A full-screen, wall-mounted family dashboard built for a Raspberry Pi in kiosk m
 - **Weather** — Current conditions, 7-day forecast, and hourly breakdown via Open-Meteo (cached hourly)
 - **Word of the day** — English definition with French and Spanish translations via dictionaryapi.dev and MyMemory
 - **Quote of the day** — Daily quote via dummyjson.com
-- **Ski conditions** — Snow reports for local hills (November–April only)
+- **Ski conditions** — Snow reports for local hills (November–April only), scraped nightly via Selenium
 - **Meal planning** — Today's recipe from a self-hosted Mealie instance
 - **Family notes** — HTML notes page with WiFi and URL QR codes
 - **Background images** — Rotating gallery of full-bleed background photos with auto-generated colour schemes
 - **GPIO hardware toggles** — Physical switches on the Pi show/hide individual calendars
+- **Motion sensor** — PIR sensor wakes the display on activity and blanks it after 15 minutes of idle
 - **Admin panel** — Web UI to manage options, images, notes, word schedule, and view API stats
+
+---
 
 ## Architecture
 
-This is a **Webpack + PHP** hybrid project.
+This is a **Webpack + PHP + Python** project.
 
 - `src/` — All source files (JS, CSS, PHP, stubs)
 - `dist/` — Build output, deployed to the Pi web server (not in git)
+- `python_helpers/` — Python services that run on the Pi
+- `pi/` — Pi-specific config files (systemd units, Apache vhost, kiosk autostart)
 
 The JavaScript frontend (`src/js/index.js`) is compiled by Webpack. PHP backend files (`src/php/`) are copied into `dist/` by `copy-webpack-plugin` during the build. **Always edit PHP files in `src/php/`, never in `dist/` directly.**
 
+### Python services
+
+| Script | Runs as | Purpose |
+|---|---|---|
+| `python_helpers/motion.py` | systemd service (root) | PIR motion sensor controls display power; physical buttons send R/T keypresses; 7 GPIO toggle switches write `toggles.json` every second |
+| `python_helpers/scrape.py` | systemd timer (www-data) | Headless Chromium scrapes ski conditions from 3 hills into `ski_hills.json`, runs daily at 6am |
+
+---
+
 ## Requirements
 
-### Local (build machine)
+### Build machine (your Mac/PC)
 
 - **Node.js** v16+ and **npm**
 
-### Raspberry Pi (server)
+### Raspberry Pi
 
-- **Apache** web server
-- **PHP 8.2+** with the following extensions:
-  - `php-curl` — external API calls
-  - `php-imagick` — image processing (upload, rotate, crop)
-  - `libheif` / `libheif-dev` — HEIC image support (iPhone photos)
-- **ImageMagick** with HEIF/HEIC delegate support
+- **Raspberry Pi OS** Bullseye or Bookworm (Desktop, 32-bit or 64-bit)
+- **Apache**, **PHP 8.2+**, **ImageMagick**, **Chromium** — all installed by `install.sh`
+- **Python 3** with `RPi.GPIO`, `gpiozero`, `keyboard`, `selenium` — all installed by `install.sh`
 
-Install on the Pi:
-```bash
-sudo apt install apache2 php php-curl php-imagick libheif-dev
-```
+---
 
-## Installation
+## First-time install
 
-### 1. Clone and install dependencies
+### 1. On your Mac — build the project
 
 ```bash
 git clone git@github.com:CanAdrian27/Calendar-V3.git
 cd Calendar-V3
 npm install
+npm run build
 ```
 
-### 2. Build
+### 2. Copy to the Pi
+
+Transfer the repo to the Pi (USB drive, `scp`, or clone directly on the Pi):
 
 ```bash
-npm run build       # single build → dist/
-npm run watch       # rebuild on file changes
-npm run clean       # delete dist/
+# From your Mac — copy the whole repo over
+rsync -av --exclude='node_modules' --exclude='dist' \
+  ./ pi@raspberrypi.local:~/Calendar-V3/
 ```
 
-### 3. Configure
+Or clone directly on the Pi and run `npm run build` there (requires Node.js on the Pi).
 
-Copy `src/php/env_vars sample.php` to `dist/env_vars.php` on the Pi and fill in your values:
-
-```php
-$calendars = [
-    'Family'   => 'https://caldav-url/family.ics',
-    'Holidays' => 'https://caldav-url/holidays.ics',
-];
-
-$showski        = true;   // show ski conditions
-$showquote      = true;   // show quote of the day
-$showword       = true;   // show word of the day
-$showword_fr    = true;   // show French translation
-$showword_es    = true;   // show Spanish translation
-$showweekly     = false;  // enable week view
-$showclock      = true;   // show 24-hour clock
-$showmealie     = true;   // enable recipe view
-$shownotes      = true;   // enable notes view
-
-$mealieUrl      = '192.168.x.x:9925';   // Mealie host:port
-$mealieUsername = 'your@email.com';
-$mealiePassword = 'your-password';
-```
-
-This file is **not in git** and must be placed manually on the Pi after each deploy.
-
-### 4. Deploy to the Pi
+### 3. On the Pi — run the install script
 
 ```bash
-rsync -av --exclude='env_vars.php' \
-          --exclude='schedule.json' \
-          --exclude='toggles.json' \
-          --exclude='word/wordlist.json' \
-          --exclude='notes/note.html' \
-          dist/ pi@192.168.x.x:/var/www/html/dist/
+cd ~/Calendar-V3
+chmod +x install.sh
+./install.sh
 ```
 
-Files excluded from rsync persist on the Pi across deploys (user config and runtime state).
+`install.sh` does the following in one step:
 
-### 5. First-time Pi setup
+1. Installs all system packages (`apache2`, `php`, `php-curl`, `php-imagick`, `libheif-dev`, `chromium-browser`, `chromium-chromedriver`, `python3-rpi.gpio`, `python3-gpiozero`, `xdotool`)
+2. Installs Python packages (`keyboard`, `selenium`) via pip
+3. Deploys `dist/` to `/var/www/html/dist/` with correct `www-data` permissions
+4. Configures the Apache vhost (points to `/var/www/html/dist/`, disables the default site)
+5. Copies Python scripts to `/usr/local/lib/calendar/`
+6. Installs and enables the `calendar-motion` systemd service and `calendar-scrape` timer
+7. Installs the Chromium kiosk autostart entry (`~/.config/autostart/`)
+8. Disables screen blanking in LXDE
+9. Sets the Pi to boot to desktop with autologin
 
-Set Apache document root or create a virtual host pointing to `/var/www/html/dist/`. Then visit the admin panel to configure options and upload background images:
+### 4. Configure
+
+Open the admin panel in a browser on the Pi (or from any device on the same network):
 
 ```
-http://raspberrypi.local/dist/admin.php
+http://raspberrypi.local/admin.php
 ```
+
+Configure settings across the admin tabs:
+
+| Tab | What to set |
+|---|---|
+| **Dashboard** | Enable/disable pages (recipe, notes, weekly view), set appearance font |
+| **Calendar** | Add iCal URLs and calendar names, set colour scheme, enable widgets |
+| **Images** | Upload background photos (HEIC supported), crop and rotate |
+| **Recipe** | Mealie server URL, username, password |
+| **Notes** | WiFi credentials for QR code, Pi address for notes QR code |
+| **Word / Quote** | Manage word list, enable French/Spanish translations |
+| **Schedule** | Adjust daily refresh times and polling intervals |
+
+### 5. Upload background images
+
+Go to **Images** in the admin panel and upload at least one photo. After upload, use the crop tool to frame the image. Processing (blur strip and colour sample) runs automatically.
+
+### 6. Reboot
+
+```bash
+sudo reboot
+```
+
+Chromium will open in kiosk mode pointing at `http://localhost/` on every boot.
+
+---
+
+## Subsequent deploys (updating from your Mac)
+
+After making changes, build and push to the Pi with a single command:
+
+```bash
+npm run build
+./deploy.sh                    # defaults to raspberrypi.local
+./deploy.sh 192.168.1.42       # or specify IP directly
+```
+
+`deploy.sh` rsyncs `dist/` and the Python scripts over SSH, skips all user data files (`env_vars.php`, `toggles.json`, `schedule.json`, `word/wordlist.json`, `notes/note.html`), fixes permissions, and restarts the motion service.
+
+---
+
+## Hardware setup
+
+### GPIO pin map (BCM numbering)
+
+| BCM Pin | Physical Pin | Function |
+|---|---|---|
+| GPIO4 | 7 | PIR motion sensor |
+| GPIO5 | 29 | Calendar toggle switch 1 |
+| GPIO6 | 31 | Calendar toggle switch 2 |
+| GPIO12 | 32 | Calendar toggle switch 3 |
+| GPIO13 | 33 | Calendar toggle switch 4 |
+| GPIO19 | 35 | Calendar toggle switch 5 |
+| GPIO16 | 36 | Calendar toggle switch 6 |
+| GPIO26 | 37 | Calendar toggle switch 7 |
+| GPIO8 | 24 | Refresh button (→ R key) |
+| GPIO11 | 23 | Toggle view button (→ T key) |
+
+**Toggle switch wiring:**
+
+```
+3.3V ──[Button]── GPIOx
+                    │
+                 [1kΩ]
+                    │
+                   GND
+```
+
+Each toggle switch needs a 1kΩ resistor (1kΩ–10kΩ works). The refresh and toggle view buttons use the internal pull-up resistor (no external resistor needed).
+
+### Motion sensor
+
+Connect a standard HC-SR501 or compatible PIR sensor to GPIO4 (BCM). The sensor controls display power via `xset dpms` — it turns the screen off after 15 minutes of no motion and back on when motion is detected.
+
+---
+
+## Services
+
+### `calendar-motion` (persistent daemon)
+
+Monitors the PIR sensor, physical buttons, and toggle switches. Starts at boot, restarts automatically on failure.
+
+```bash
+# Status and live logs
+sudo systemctl status calendar-motion
+sudo journalctl -u calendar-motion -f
+
+# Restart after script changes
+sudo systemctl restart calendar-motion
+```
+
+### `calendar-scrape` (daily timer)
+
+Scrapes ski conditions at 6am daily. Runs as `www-data` so it can write to the web root. If the Pi was off at 6am, the scrape runs immediately on next boot (`Persistent=true`).
+
+```bash
+# Check timer status
+sudo systemctl status calendar-scrape.timer
+
+# See when the next run is scheduled
+sudo systemctl list-timers calendar-scrape.timer
+
+# Run the scrape manually right now
+sudo systemctl start calendar-scrape.service
+
+# Live output from last run
+sudo journalctl -u calendar-scrape -f
+```
+
+---
+
+## File permissions
+
+After install, `/var/www/html/dist/` is owned by `www-data:www-data`. The permission layout:
+
+| Path | Permissions | Rationale |
+|---|---|---|
+| `dist/` and all files | `644` / `755` | Apache can read everything |
+| `dist/images/`, `dist/ski/`, `dist/weather/`, `dist/calendars/`, `dist/word/`, `dist/notes/`, `dist/images_supports/` | `775` | PHP (`www-data`) and the scrape service (`www-data`) can write |
+| `dist/env_vars.php` | `644`, owned by `www-data` | PHP can write; saved by the admin panel |
+| `dist/toggles.json` | `644`, owned by `www-data` | `motion.py` (root) writes it; PHP reads it |
+
+---
+
+## Troubleshooting
+
+**Display doesn't wake on motion**
+```bash
+sudo journalctl -u calendar-motion -f
+# Check DISPLAY and XAUTHORITY are correct for your Pi user/session
+```
+
+**Ski data is stale or missing**
+```bash
+sudo systemctl start calendar-scrape.service
+sudo journalctl -u calendar-scrape -n 50
+# Chromedriver version must match installed Chromium:
+chromium-browser --version
+chromedriver --version
+```
+
+**Admin panel can't save settings** (permission error)
+```bash
+ls -la /var/www/html/dist/
+# env_vars.php should be owned by www-data
+sudo chown www-data:www-data /var/www/html/dist/env_vars.php
+```
+
+**Calendars not loading**
+```bash
+# Check iCal fetch
+curl "http://raspberrypi.local/fetchCalendar.php?debug=1"
+# Or open in browser — the debug page shows each URL and HTTP status
+```
+
+**General PHP errors**
+```bash
+sudo tail -f /var/log/apache2/calendar-error.log
+```
+
+---
 
 ## Admin Panel
 
 | Page | URL | Purpose |
 |---|---|---|
-| Options | `admin.php` | Toggle features, configure Mealie/QR/clock |
+| Dashboard | `admin.php` | Page visibility, appearance, debug tools |
+| Calendar | `adminCalendar.php` | Calendar URLs, colour scheme, widgets |
 | Images | `adminGallery.php` | Upload, rotate, and crop background images |
-| Notes | `adminNotes.php` | Edit the family notes page |
-| Word of Day | `adminWord.php` | Edit word list, force refresh word/quote |
-| Schedule | `adminSchedule.php` | Configure refresh intervals |
+| Recipe | `adminRecipe.php` | Mealie server credentials |
+| Notes | `adminNotes.php` | Edit notes, WiFi and Pi address for QR codes |
+| Word / Quote | `adminWord.php` | Word list, FR/ES translations, force refresh |
+| Schedule | `adminSchedule.php` | Daily refresh times and polling intervals |
 | Stats | `adminStats.php` | Monitor API call counts and timing |
+
+Each admin page has a **Debug Tools** section (Dashboard tab) with links that open individual PHP endpoints in debug mode — useful for diagnosing API failures without reading log files.
+
+---
 
 ## Background Images
 
-Images are uploaded via the admin panel. HEIC (iPhone) photos are supported and automatically converted. After upload, use the crop tool to position the image in a 2:1 frame — the output is saved as a transparent PNG so smaller images can be padded rather than stretched.
+Images are uploaded via the admin panel. HEIC (iPhone) photos are supported and automatically converted. After upload, use the crop tool to position the image — output is saved as a transparent PNG. Processing (blur strip and dominant colour sample for theming) runs automatically after upload and after crop/rotate.
 
-**Image processing** (blur strip and colour sample for theming) runs automatically on upload and after crop/rotate.
+---
 
 ## Keyboard Shortcuts
-
-These work when the display is in focus:
 
 | Key | Action |
 |---|---|
@@ -140,9 +298,9 @@ These work when the display is in focus:
 | `T` | Toggle view (month → recipe → notes → month) |
 | `0–9` | Toggle individual calendars |
 
-## GPIO Hardware Toggles
+These also map to the physical buttons: GPIO8 → `R`, GPIO11 → `T`.
 
-The Pi polls `dist/toggles.json` every second. Keys are GPIO pin numbers; `1` = show calendar, `0` = hide. An external script on the Pi updates this file in response to physical switches.
+---
 
 ## External APIs
 
@@ -153,5 +311,6 @@ The Pi polls `dist/toggles.json` every second. Keys are GPIO pin numbers; `1` = 
 | dictionaryapi.dev | Word definition + phonetics | Once per day (cached) |
 | MyMemory | FR/ES translations | Once per day (cached) |
 | Mealie (local) | Today's meal plan | Each recipe page load |
+| Ski hill websites | Snow conditions (Selenium scrape) | Once per day at 6am |
 
 API call counts and timing are visible in the Stats admin page.

@@ -2,16 +2,7 @@
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
-// ── Defaults ──────────────────────────────────────────────────────────────────
-$showword    = false;
-$showword_fr = false;
-$showword_es = false;
-
-if (file_exists('env_vars.php')) include('env_vars.php');
-
-$showword_fr = $showword_fr ?? false;
-$showword_es = $showword_es ?? false;
-
+require_once('adminEnvHelper.php');
 include_once('wordDefaults.php'); // $defaultWords
 
 $wordlistFile = 'word/wordlist.json';
@@ -23,11 +14,22 @@ $words  = ($wljson !== false) ? json_decode($wljson, true) : null;
 if (!is_array($words) || count($words) === 0) $words = $defaultWords;
 
 $saved = false;
+$settingsSaved = false;
 $error = '';
 $preview = null;
 
 // ── Handle POST ───────────────────────────────────────────────────────────────
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_settings'])) {
+	$showword_fr = isset($_POST['showword_fr']);
+	$showword_es = isset($_POST['showword_es']);
+	if (writeEnvVars()) {
+		$settingsSaved = true;
+	} else {
+		$error = 'Could not write env_vars.php — check file permissions.';
+	}
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['wordlist'])) {
 	$raw = trim($_POST['wordlist'] ?? '');
 	$newWords = array_values(array_filter(
 		array_map('trim', explode("\n", str_replace("\r", '', $raw))),
@@ -143,7 +145,7 @@ $todayWord  = $words[$todayIndex];
 <head>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<title>Admin — Word of the Day</title>
+	<title>Admin — Word / Quote</title>
 	<?php include('adminSharedStyles.php'); ?>
 	<style>
 		textarea {
@@ -172,17 +174,35 @@ $todayWord  = $words[$todayIndex];
 <body>
 <?php include('adminNav.php'); ?>
 
-<h1>Word of the Day</h1>
+<h1>Word / Quote</h1>
 
 <?php if (!$showword): ?>
-	<div class="notice error">Word of the day is currently <strong>disabled</strong>. Enable it in <a href="admin.php">Options</a>.</div>
+	<div class="notice error">Word of the day is currently <strong>disabled</strong>. Enable it in <a href="admin.php">Dashboard</a>.</div>
 <?php endif; ?>
 
-<?php if ($saved): ?>
+<?php if ($settingsSaved): ?>
+	<div class="notice success">✓ Settings saved.</div>
+<?php elseif ($saved): ?>
 	<div class="notice success">✓ Word list saved. Definitions reloaded.</div>
 <?php elseif ($error): ?>
 	<div class="notice error">⚠ <?= htmlspecialchars($error) ?></div>
 <?php endif; ?>
+
+<form method="POST">
+	<input type="hidden" name="save_settings" value="1">
+	<div class="card">
+		<h2>Language Settings</h2>
+		<div class="toggle-row">
+			<input type="checkbox" id="showword_fr" name="showword_fr" <?= $showword_fr ? 'checked' : '' ?>>
+			<label for="showword_fr">Show French translation</label>
+		</div>
+		<div class="toggle-row">
+			<input type="checkbox" id="showword_es" name="showword_es" <?= $showword_es ? 'checked' : '' ?>>
+			<label for="showword_es">Show Spanish translation</label>
+		</div>
+	</div>
+	<button type="submit" class="btn-save" style="margin-bottom:24px">Save Settings</button>
+</form>
 
 <?php if ($preview): ?>
 <div class="card">

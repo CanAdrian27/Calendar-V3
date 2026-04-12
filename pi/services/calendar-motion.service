@@ -1,0 +1,21 @@
+[Unit]
+Description=Calendar — Motion Sensor & GPIO Toggles
+Documentation=https://github.com/CanAdrian27/Calendar-V3
+After=graphical.target
+Wants=graphical.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/bin/python3 /usr/local/lib/calendar/motion.py
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+# X display access for xset dpms and keyboard injection
+Environment=DISPLAY=:0
+Environment=XAUTHORITY=/home/pi/.Xauthority
+
+[Install]
+WantedBy=multi-user.target

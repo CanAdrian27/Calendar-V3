@@ -1,0 +1,14 @@
+[Unit]
+Description=Calendar — Ski Condition Scraper
+Documentation=https://github.com/CanAdrian27/Calendar-V3
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=www-data
+ExecStart=/usr/bin/python3 /usr/local/lib/calendar/scrape.py
+StandardOutput=journal
+StandardError=journal
+# Give Chromium time to load all three pages
+TimeoutStartSec=120

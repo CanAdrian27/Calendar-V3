@@ -661,7 +661,10 @@ function SelectImages()
     {
       originalPhotoSrc = data1.image;
       $('#photo').attr('src', data1.image)
-      $('#blankBottomBox').html('<style>html,body { background-image:'+data1.blurry+'; background-size: cover; background-repeat: no-repeat; }'+data1.alpha_color+'</style>')
+      $('#blankBottomBox').html(
+        data1.font_link +
+        '<style>html,body { background-image:'+data1.blurry+'; background-size: cover; background-repeat: no-repeat; }'+data1.alpha_color+'</style>'
+      )
       
     }
   });

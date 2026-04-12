@@ -36,18 +36,34 @@
 		box-shadow: 0 1px 4px rgba(0,0,0,.08);
 	}
 	label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; }
-	input[type=text], input[type=password], input[type=url] {
+	input[type=text], input[type=password], input[type=url], input[type=number], select {
 		width: 100%;
 		padding: 8px 10px;
 		border: 1px solid #d0d5dd;
 		border-radius: 6px;
 		font-size: 14px;
 		margin-bottom: 12px;
+		background: #fff;
+		color: #1a1a2e;
+		font-family: inherit;
 	}
-	input[type=text]:focus, input[type=password]:focus, input[type=url]:focus {
+	input[type=text]:focus, input[type=password]:focus, input[type=url]:focus,
+	input[type=number]:focus, select:focus {
 		outline: none;
 		border-color: #4f6ef7;
 		box-shadow: 0 0 0 3px rgba(79,110,247,.15);
+	}
+	input[type=number] { width: 100px; }
+	.font-preview {
+		border: 1px solid #d0d5dd;
+		border-radius: 6px;
+		padding: 10px 12px;
+		font-size: 20px;
+		color: #1a1a2e;
+		background: #f8f9fb;
+		margin-bottom: 12px;
+		min-height: 44px;
+		transition: font-family .2s;
 	}
 	.card-hint { margin: -6px 0 14px; font-size: 13px; color: #888; }
 	.lang-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 16px; margin-bottom: 4px; }
@@ -133,6 +149,50 @@
 	.upload-zone { border: 2px dashed #d0d5dd; border-radius: 8px; padding: 24px; text-align: center; transition: border-color .2s; }
 	.upload-zone.drag-over { border-color: #4f6ef7; background: #f0f4ff; }
 	.upload-zone p { margin: 0 0 12px; color: #666; font-size: 14px; }
+	/* Colour scheme selector */
+	.scheme-option { margin-bottom: 16px; }
+	.scheme-option > label {
+		display: flex; align-items: center; gap: 8px;
+		font-weight: 600; font-size: 14px; cursor: pointer;
+	}
+	.scheme-option > label input[type=radio] { width: auto; height: auto; margin: 0; padding: 0; }
+	.scheme-desc { margin: 4px 0 0 24px; font-size: 13px; color: #666; }
+	#mono-picker { margin: 8px 0 0 24px; display: none; }
+	#mono-picker > label { display: inline; font-weight: 500; font-size: 13px; margin-right: 8px; margin-bottom: 0; }
+	input[type=color] { width: 48px; height: 32px; padding: 2px 3px; border: 1px solid #d0d5dd; border-radius: 6px; cursor: pointer; vertical-align: middle; }
+	#scheme-image-note {
+		display: none; margin: 10px 0 0;
+		font-size: 12px; color: #666;
+		background: #f8f9fb; border: 1px solid #e4e7ec;
+		border-radius: 6px; padding: 6px 12px;
+	}
+	.scheme-preview {
+		display: flex; flex-wrap: wrap; gap: 5px;
+		margin-top: 16px; padding-top: 16px;
+		border-top: 1px solid #e4e7ec;
+	}
+	.scheme-preview-box {
+		border-radius: 4px;
+		padding: 2px 8px;
+		font-size: 12px; font-weight: 600;
+		white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+		max-width: 130px;
+		cursor: default;
+	}
+	/* Debug buttons */
+	.btn-debug {
+		display: inline-block;
+		background: #f8f9fb;
+		border: 1px solid #d0d5dd;
+		border-radius: 6px;
+		padding: 6px 12px;
+		font-size: 13px;
+		font-weight: 600;
+		font-family: monospace;
+		color: #333;
+		text-decoration: none;
+	}
+	.btn-debug:hover { background: #f0f4ff; border-color: #4f6ef7; color: #4f6ef7; }
 	/* Notes */
 	#quill-editor { border: 1px solid #d0d5dd; border-radius: 0 0 6px 6px; min-height: 300px; font-size: 15px; margin-bottom: 14px; }
 	.ql-toolbar  { border-radius: 6px 6px 0 0; border-color: #d0d5dd !important; }

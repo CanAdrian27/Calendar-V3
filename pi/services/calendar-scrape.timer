@@ -1,0 +1,12 @@
+[Unit]
+Description=Calendar — Run ski scraper daily at 6am
+Documentation=https://github.com/CanAdrian27/Calendar-V3
+
+[Timer]
+# Run at 6:00am every day
+OnCalendar=*-*-* 06:00:00
+# Run immediately on boot if the last scheduled run was missed (e.g. Pi was off)
+Persistent=true
+
+[Install]
+WantedBy=timers.target
