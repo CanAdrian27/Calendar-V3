@@ -21,6 +21,7 @@ $showweathericon     = true;
 $showtemperature     = true;
 $showfeelslike_box   = false;
 $showfeelslike_combo = false;
+$feelslike_mode      = 'apparent';
 $showhourlyweather   = true;
 $showsunrisesunset   = true;
 $showmoonphase       = true;
@@ -28,6 +29,8 @@ $showprecipqty       = true;
 $showprecipprob      = false;
 $showpreciphours     = false;
 $showuvindex         = false;
+$showdailywind       = false;
+$showhourlywind      = false;
 $cal_languages       = ['en', 'fr'];
 $ui_font             = 'IBM Plex Sans';
 $event_font_size     = 12;
@@ -49,7 +52,8 @@ function writeEnvVars() {
 	       $show_notes_qr, $show_wifi_qr, $showcurrentweather, $showwindspeed,
 	       $showweathericon, $showtemperature, $showfeelslike_box, $showfeelslike_combo,
 	       $showhourlyweather, $showsunrisesunset, $showmoonphase, $showprecipqty,
-	       $showprecipprob, $showpreciphours, $showuvindex, $cal_languages, $ui_font,
+	       $showprecipprob, $showpreciphours, $showuvindex, $showdailywind, $showhourlywind,
+	       $feelslike_mode, $cal_languages, $ui_font,
 	       $event_font_size, $color_scheme, $color_scheme_base, $image_height,
 	       $wifi_ssid, $wifi_password, $pi_base_url, $mealieUsername, $mealiePassword, $mealieUrl;
 
@@ -79,6 +83,9 @@ function writeEnvVars() {
 	$php .= '$showprecipprob = '      . ($showprecipprob      ? 'true' : 'false') . ";\n";
 	$php .= '$showpreciphours = '     . ($showpreciphours     ? 'true' : 'false') . ";\n";
 	$php .= '$showuvindex = '         . ($showuvindex         ? 'true' : 'false') . ";\n";
+	$php .= '$showdailywind = '       . ($showdailywind       ? 'true' : 'false') . ";\n";
+	$php .= '$showhourlywind = '      . ($showhourlywind      ? 'true' : 'false') . ";\n";
+	$php .= '$feelslike_mode = '      . var_export($feelslike_mode, true)          . ";\n";
 	$php .= '$cal_languages = '       . var_export($cal_languages,    true) . ";\n";
 	$php .= '$ui_font = '             . var_export($ui_font,           true) . ";\n";
 	$php .= '$event_font_size = '     . (int)$event_font_size               . ";\n";

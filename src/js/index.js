@@ -425,13 +425,13 @@ function loadWeather()
         }
         if (data.showtemperature === false) {
           $('#cw_temp_contain').hide().html('');
-        } else if (data.showfeelslike_combo && currentweather.apparent_temperature != null) {
-          $('#cw_temp_contain').show().html(currentweather.temperature + '<i class="wi wi-celsius"></i><span class="cw_feelslike_combo">&thinsp;/&thinsp;' + currentweather.apparent_temperature + '<i class="wi wi-celsius"></i></span>');
+        } else if (data.showfeelslike_combo && currentweather.feels_like != null) {
+          $('#cw_temp_contain').show().html(currentweather.temperature + '<i class="wi wi-celsius"></i><span class="cw_feelslike_combo">&thinsp;/&thinsp;' + currentweather.feels_like + '<i class="wi wi-celsius"></i></span>');
         } else {
           $('#cw_temp_contain').show().html(currentweather.temperature + '<i class="wi wi-celsius"></i>&nbsp;<i id="cw_temp_icon" class="wi wi-thermometer"></i>');
         }
-        if (data.showfeelslike_box && currentweather.apparent_temperature != null) {
-          $('#cw_feelslike_contain').show().html('Feels like ' + currentweather.apparent_temperature + '<i class="wi wi-celsius"></i>');
+        if (data.showfeelslike_box && currentweather.feels_like != null) {
+          $('#cw_feelslike_contain').show().html('Feels like ' + currentweather.feels_like + '<i class="wi wi-celsius"></i>');
         } else {
           $('#cw_feelslike_contain').hide().html('');
         }
@@ -492,10 +492,21 @@ function loadWeather()
           extraRow += '<span class="dw_uvindex">UV ' + Math.round(daily.uv_index_max[i]) + '</span>';
         }
 
+        var windRow = '';
+        if (data.showdailywind && daily.wind_speed_10m_max) {
+          windRow += '<span class="dw_wind_avg"><i class="wi wi-strong-wind"></i> ' + Math.round(daily.wind_speed_10m_max[i]) + ' ' + (data.daily_units.wind_speed_10m_max || 'km/h') + '</span>';
+          if (daily.wind_gusts_10m_max) {
+            windRow += '<span class="dw_wind_gust"><i class="wi wi-wind-beaufort-12"></i> ' + Math.round(daily.wind_gusts_10m_max[i]) + ' ' + (data.daily_units.wind_gusts_10m_max || 'km/h') + '</span>';
+          }
+        }
+
         // Remove and rebuild lower box — sun/moon row is populated by loadSunData()
         $("td[data-date='"+daily.time[i]+"']>.fc-daygrid-day-frame>.dw_lower_box").remove();
-        if (extraRow) {
-          $("td[data-date='"+daily.time[i]+"']>.fc-daygrid-day-frame").append('<div class="dw_lower_box"><div class="dw_extra_row">'+extraRow+'</div></div>');
+        var lowerContent = '';
+        if (extraRow) lowerContent += '<div class="dw_extra_row">'+extraRow+'</div>';
+        if (windRow)  lowerContent += '<div class="dw_wind_row">'+windRow+'</div>';
+        if (lowerContent) {
+          $("td[data-date='"+daily.time[i]+"']>.fc-daygrid-day-frame").append('<div class="dw_lower_box">'+lowerContent+'</div>');
         }
 
       }
@@ -533,7 +544,11 @@ function loadWeather()
           var activeIcon = '<i class="wi wi-snowflake-cold""></i>'
         }
         
-        hourstring += '<div class="hour_box" id="hourly_box_'+j+'"><div class="hour_time">'+formatAMPM( new Date(hourly.time[j]))+'</div><div class="hour_icon">'+hourly.icon[j]+'</div><div class="hour_temp">'+hourly.temperature_2m[j]+' '+data.hourly_units.temperature_2m+'</div><div class="hour_feelslike">Feels Like</div><div class="hour_aparTemp">'+hourly.apparent_temperature[j]+' '+data.hourly_units.apparent_temperature+'</div><div class="hour_precip">'+activeIcon+' '+activePrecip +' '+activeType+'</div></div>'
+        var hourWindHtml = '';
+        if (data.showhourlywind && hourly.wind_speed_10m) {
+          hourWindHtml = '<div class="hour_wind"><i class="wi wi-strong-wind"></i> '+hourly.wind_speed_10m[j]+' '+(data.hourly_units.wind_speed_10m || 'km/h')+'</div>';
+        }
+        hourstring += '<div class="hour_box" id="hourly_box_'+j+'"><div class="hour_time">'+formatAMPM( new Date(hourly.time[j]))+'</div><div class="hour_icon">'+hourly.icon[j]+'</div><div class="hour_temp">'+hourly.temperature_2m[j]+' '+data.hourly_units.temperature_2m+'</div><div class="hour_feelslike">Feels Like</div><div class="hour_aparTemp">'+hourly.apparent_temperature[j]+' '+data.hourly_units.apparent_temperature+'</div><div class="hour_precip">'+activeIcon+' '+activePrecip +' '+activeType+'</div>'+hourWindHtml+'</div>'
       }
       if (data.showhourlyweather === false) {
         $('#BottomBox').hide();

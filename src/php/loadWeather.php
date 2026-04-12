@@ -27,6 +27,7 @@ if (isset($weather->current) && !isset($weather->current_weather)) {
     'time'                 => $weather->current->time,
     'temperature'          => $weather->current->temperature_2m,
     'apparent_temperature' => $weather->current->apparent_temperature ?? null,
+    'dew_point'            => $weather->current->dew_point_2m ?? null,
     'windspeed'            => $weather->current->wind_speed_10m,
     'winddirection'        => $weather->current->wind_direction_10m ?? null,
     'weathercode'          => $weather->current->weather_code,
@@ -53,6 +54,34 @@ if (!isset($weather->current_weather) || !isset($weather->daily)) {
   exit;
 }
 
+// ── Feels-like calculation ────────────────────────────────────────────────────
+// Humidex formula (Environment Canada): meaningful only when T ≥ 20°C.
+// Falls back to apparent_temperature (wind chill) when dew point unavailable.
+function calcHumidex($temp, $dewpoint) {
+  if ($dewpoint === null) return null;
+  $e = 6.11 * exp(5417.7530 * (1/273.16 - 1/(273.15 + $dewpoint)));
+  return round($temp + 0.5555 * ($e - 10), 1);
+}
+
+$feelslike_mode = isset($feelslike_mode) ? $feelslike_mode : 'apparent';
+$temp      = $weather->current_weather->temperature ?? null;
+$apparent  = $weather->current_weather->apparent_temperature ?? null;
+$dewpoint  = $weather->current_weather->dew_point ?? null;
+$humidex   = ($temp !== null && $dewpoint !== null) ? calcHumidex($temp, $dewpoint) : null;
+
+if ($feelslike_mode === 'humidex' && $humidex !== null) {
+  $feels_like = $humidex;
+} elseif ($feelslike_mode === 'auto') {
+  // Humidex in warm/humid conditions (T ≥ 20°C), apparent temp (wind chill) otherwise
+  $feels_like = ($temp !== null && $temp >= 20 && $humidex !== null) ? $humidex : $apparent;
+} else {
+  // 'apparent' — Open-Meteo apparent temperature (default)
+  $feels_like = $apparent;
+}
+
+$weather->current_weather->feels_like = $feels_like;
+$weather->feelslike_mode              = $feelslike_mode;
+
 $weather = convertWeatherCodesToIcons($weather);
 $weather->showclock            = !empty($showclock);
 $weather->showcurrentweather  = isset($showcurrentweather)  ? (bool)$showcurrentweather  : true;
@@ -61,6 +90,8 @@ $weather->showweathericon      = isset($showweathericon)     ? (bool)$showweathe
 $weather->showtemperature      = isset($showtemperature)     ? (bool)$showtemperature     : true;
 $weather->showfeelslike_box    = isset($showfeelslike_box)   ? (bool)$showfeelslike_box   : false;
 $weather->showfeelslike_combo  = isset($showfeelslike_combo) ? (bool)$showfeelslike_combo : false;
+// feelslike_mode already set above; re-expose on the response object for the frontend
+$weather->feelslike_mode       = $feelslike_mode;
 $weather->showhourlyweather    = isset($showhourlyweather)   ? (bool)$showhourlyweather   : true;
 $weather->showsunrisesunset    = isset($showsunrisesunset)   ? (bool)$showsunrisesunset   : true;
 $weather->showmoonphase        = isset($showmoonphase)       ? (bool)$showmoonphase       : true;
@@ -68,15 +99,21 @@ $weather->showprecipqty        = isset($showprecipqty)       ? (bool)$showprecip
 $weather->showprecipprob       = isset($showprecipprob)      ? (bool)$showprecipprob      : false;
 $weather->showpreciphours      = isset($showpreciphours)     ? (bool)$showpreciphours     : false;
 $weather->showuvindex          = isset($showuvindex)         ? (bool)$showuvindex         : false;
+$weather->showdailywind        = isset($showdailywind)       ? (bool)$showdailywind       : false;
+$weather->showhourlywind       = isset($showhourlywind)      ? (bool)$showhourlywind      : false;
 
 if ($debug) {
 	echo debugPageHeader('loadWeather');
 	echo '<div class="dbg-row"><span class="dbg-label">Cache time</span><span class="dbg-val">' . htmlspecialchars($weather->current_weather->time ?? '(unknown)') . '</span></div>';
 	echo '<div class="dbg-row"><span class="dbg-label">Temperature</span><span class="dbg-val">' . htmlspecialchars($weather->current_weather->temperature ?? '?') . '°C</span></div>';
+	echo '<div class="dbg-row"><span class="dbg-label">Dew point</span><span class="dbg-val">' . htmlspecialchars($weather->current_weather->dew_point ?? '(not yet cached — run fetchWeather)') . '°C</span></div>';
+	echo '<div class="dbg-row"><span class="dbg-label">Apparent temp</span><span class="dbg-val">' . htmlspecialchars($weather->current_weather->apparent_temperature ?? '?') . '°C</span></div>';
+	echo '<div class="dbg-row"><span class="dbg-label">Humidex</span><span class="dbg-val">' . htmlspecialchars($humidex ?? '(dew point unavailable)') . ($humidex !== null ? '°C' : '') . '</span></div>';
+	echo '<div class="dbg-row"><span class="dbg-label">Feels like (resolved)</span><span class="dbg-val">' . htmlspecialchars($feels_like ?? '?') . '°C — mode: ' . htmlspecialchars($feelslike_mode) . '</span></div>';
 	echo '<div class="dbg-row"><span class="dbg-label">Weather code</span><span class="dbg-val">' . htmlspecialchars($weather->current_weather->weathercode ?? '?') . '</span></div>';
 	echo '<div class="dbg-row"><span class="dbg-label">Daily forecast days</span><span class="dbg-val">' . count((array)($weather->daily->time ?? [])) . '</span></div>';
 	echo '<h2>Show Flags</h2>';
-	$flags = ['showclock','showcurrentweather','showwindspeed','showweathericon','showtemperature','showfeelslike_box','showfeelslike_combo','showhourlyweather','showsunrisesunset','showmoonphase','showprecipqty','showprecipprob','showpreciphours','showuvindex'];
+	$flags = ['showclock','showcurrentweather','showwindspeed','showweathericon','showtemperature','showfeelslike_box','showfeelslike_combo','feelslike_mode','showhourlyweather','showsunrisesunset','showmoonphase','showprecipqty','showprecipprob','showpreciphours','showuvindex'];
 	foreach ($flags as $f) {
 		echo '<div class="dbg-row"><span class="dbg-label">' . $f . '</span><span class="dbg-val">' . ($weather->$f ? 'true' : 'false') . '</span></div>';
 	}
