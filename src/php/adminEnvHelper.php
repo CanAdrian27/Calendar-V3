@@ -33,6 +33,7 @@ $ui_font             = 'IBM Plex Sans';
 $event_font_size     = 12;
 $color_scheme        = 'image_low';
 $color_scheme_base   = '#4a90d9';
+$image_height        = 750;
 $wifi_ssid           = '';
 $wifi_password       = '';
 $pi_base_url         = '';
@@ -49,8 +50,8 @@ function writeEnvVars() {
 	       $showweathericon, $showtemperature, $showfeelslike_box, $showfeelslike_combo,
 	       $showhourlyweather, $showsunrisesunset, $showmoonphase, $showprecipqty,
 	       $showprecipprob, $showpreciphours, $showuvindex, $cal_languages, $ui_font,
-	       $event_font_size, $color_scheme, $color_scheme_base, $wifi_ssid, $wifi_password,
-	       $pi_base_url, $mealieUsername, $mealiePassword, $mealieUrl;
+	       $event_font_size, $color_scheme, $color_scheme_base, $image_height,
+	       $wifi_ssid, $wifi_password, $pi_base_url, $mealieUsername, $mealiePassword, $mealieUrl;
 
 	$php  = "<?php\n";
 	$php .= '$calendars = '           . var_export($calendars,        true) . ";\n\n";
@@ -83,6 +84,7 @@ function writeEnvVars() {
 	$php .= '$event_font_size = '     . (int)$event_font_size               . ";\n";
 	$php .= '$color_scheme = '        . var_export($color_scheme,      true) . ";\n";
 	$php .= '$color_scheme_base = '   . var_export($color_scheme_base, true) . ";\n";
+	$php .= '$image_height = '        . (int)$image_height                   . ";\n";
 	$php .= '$wifi_ssid = '           . var_export($wifi_ssid,         true) . ";\n";
 	$php .= '$wifi_password = '       . var_export($wifi_password,     true) . ";\n";
 	$php .= '$pi_base_url = '         . var_export($pi_base_url,       true) . ";\n\n";

@@ -13,10 +13,11 @@
 	$support_dir = 'images_supports/';
 	$alpha       = 0.45;
 
-	$ui_font         = isset($ui_font)         ? $ui_font         : 'IBM Plex Sans';
-	$event_font_size = isset($event_font_size)  ? (int)$event_font_size : 12;
-	$color_scheme    = isset($color_scheme)     ? $color_scheme    : 'image_low';
-	$color_scheme_base = isset($color_scheme_base) ? $color_scheme_base : '#4a90d9';
+	$ui_font         = isset($ui_font)           ? $ui_font               : 'IBM Plex Sans';
+	$event_font_size = isset($event_font_size)   ? (int)$event_font_size  : 12;
+	$color_scheme    = isset($color_scheme)      ? $color_scheme          : 'image_low';
+	$color_scheme_base = isset($color_scheme_base) ? $color_scheme_base   : '#4a90d9';
+	$image_height    = isset($image_height)      ? max(200, min(1800, (int)$image_height)) : 750;
 
 	// Google Fonts URL for each supported font (IBM Plex Sans is already bundled in layout.css).
 	$font_urls = [
@@ -63,7 +64,7 @@
 		);
 	}
 
-	$extra_css = "--ae-font-family:'" . addslashes($ui_font) . "';--ae-event-font-size:{$event_font_size}px;";
+	$extra_css = "--ae-font-family:'" . addslashes($ui_font) . "';--ae-event-font-size:{$event_font_size}px;--ae-image-height:{$image_height}px;";
 
 	$retArr['image']       = $images['image'];
 	$retArr['blurry']      = $images['background'];

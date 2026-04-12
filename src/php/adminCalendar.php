@@ -35,6 +35,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	$cal_languages  = array_values(array_filter($_POST['cal_languages'] ?? []));
 	if (empty($cal_languages)) $cal_languages = ['en'];
 
+	// Image height
+	$image_height = max(200, min(1800, (int)($_POST['image_height'] ?? 750)));
+
 	// Colour scheme
 	$allowedSchemes  = ['image_low', 'image_high', 'image_distinct', 'bright', 'mono'];
 	$color_scheme    = in_array($_POST['color_scheme'] ?? '', $allowedSchemes) ? $_POST['color_scheme'] : 'image_low';
@@ -129,6 +132,14 @@ for ($i = count($calNamesForJs); $i < 10; $i++) {
 			</div>
 			<?php endforeach; ?>
 		</div>
+	</div>
+
+	<div class="card">
+		<h2>Background Image</h2>
+		<label for="image_height">Photo height (px)</label>
+		<p class="card-hint">Controls how tall the background photo area is. Increase for a larger image, decrease to give more space to the calendar. Range: 200–1800 px.</p>
+		<input type="number" id="image_height" name="image_height"
+		       min="200" max="1800" step="10" value="<?= (int)$image_height ?>">
 	</div>
 
 	<div class="card">
