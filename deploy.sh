@@ -35,7 +35,7 @@ TARGET="$PI_USER@$PI_HOST"
   || error "dist/ not found. Run 'npm run build' first."
 
 # ── Sync dist/ ────────────────────────────────────────────────────────────────
-info "Syncing dist/ → $TARGET:$WEB_ROOT…"
+info "Syncing dist/ → $TARGET:${WEB_ROOT}…"
 rsync -avz --progress \
   --exclude='env_vars.php' \
   --exclude='toggles.json' \
