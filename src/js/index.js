@@ -3,7 +3,8 @@ import { Calendar } from '@fullcalendar/core'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import iCalendarPlugin from '@fullcalendar/icalendar'
-import listPlugin from '@fullcalendar/list';
+import listPlugin from '@fullcalendar/list'
+import multiMonthPlugin from '@fullcalendar/multimonth';
 import css from  '/src/css/layout.css'
 import css1 from '/src/css/weather-icons-wind.min.css'
 import css2 from '/src/css/weather-icons.min.css'
@@ -125,24 +126,23 @@ function loadCal()
         }
       }
       // Hide BottomBox before resizeCal so the calendar gets the correct height from the start
-      if (data.showhourlyweather === false) {
+      var fullHeightView = (initview === 'upcomingWeeks' || initview === 'dualMonth');
+      if (data.showhourlyweather === false || fullHeightView) {
         $('#BottomBox').hide();
       } else {
         $('#BottomBox').show();
       }
-       var calHeight = resizeCal();
-       if(initview=='timeGridWeek' || initview =='dayGridMonth')
+       var calHeight = resizeCal(fullHeightView);
+       var calViews = ['dayGridMonth', 'timeGridWeek', 'upcomingWeeks', 'dualMonth'];
+       if (calViews.indexOf(initview) !== -1)
        {
-         makeCalendar(data.calendars, data.cal_languages);
-       }else 
+         makeCalendar(data.calendars, data.cal_languages, data.upcoming_weeks || 4);
+       } else if (initview === 'notes')
        {
-         if(initview=='notes')
-         {
-            makeNotes();
-         }else
-         {
-           makeRecipe();
-         }
+         makeNotes();
+       } else
+       {
+         makeRecipe();
        }
    }
   });
@@ -151,6 +151,8 @@ function loadCal()
 
 // Restores the background photo after leaving recipe view.
 function restorePhoto() {
+  $('body').removeClass('no-photo-view');
+  $('#photoContain').show();
   if (!$('body').hasClass('recipe-view')) return;
   if (originalPhotoSrc) $('#photo').attr('src', originalPhotoSrc);
   $('#photo').removeClass('photo-recipe');
@@ -335,9 +337,19 @@ function buildSteps(data)
 
 
 // Initialises FullCalendar with the provided .ics sources and a randomly chosen locale.
-function makeCalendar(data, languages)
+function makeCalendar(data, languages, upcomingWeeks)
 {
-  restorePhoto();
+  var initview = document.getElementById('currview').value;
+  var weeks = upcomingWeeks || 4;
+  var hidePhoto = (initview === 'dualMonth') || (initview === 'upcomingWeeks' && weeks > 4);
+
+  if (hidePhoto) {
+    $('#photoContain').hide();
+    $('body').addClass('no-photo-view');
+  } else {
+    restorePhoto();
+  }
+
   var calSources = []
   var cnt = 0;
   data.forEach(function(key) {
@@ -352,16 +364,33 @@ function makeCalendar(data, languages)
     cnt += 1;
     }
   });
-  
-  
-  var initview = document.getElementById('currview').value
-  var calHeight = resizeCal();
+
+  var noStrip = (initview === 'upcomingWeeks' || initview === 'dualMonth');
+  if (noStrip) {
+    $('#BottomBox').hide();
+    $('#hourlyWeather').html('');
+  }
+
+  var calHeight = resizeCal(hidePhoto);
   var calendarEl = document.getElementById('calendar')
   var  calendar = new Calendar(calendarEl, {
     initialView: initview,
-    plugins: [dayGridPlugin,iCalendarPlugin, timeGridPlugin, listPlugin],
+    initialDate: (initview === 'upcomingWeeks') ? new Date() : undefined,
+    plugins: [dayGridPlugin, iCalendarPlugin, timeGridPlugin, listPlugin, multiMonthPlugin],
     height: calHeight,
-    
+    multiMonthMaxColumns: 1,
+    views: {
+      upcomingWeeks: {
+        type: 'dayGrid',
+        duration: { weeks: weeks },
+        buttonText: 'upcoming',
+      },
+      dualMonth: {
+        type: 'multiMonth',
+        duration: { months: 2 },
+        buttonText: '2 months',
+      },
+    },
     slotDuration:'01:00:00',
     eventDisplay: 'block',
     eventOrder: function(a, b) {
@@ -480,23 +509,23 @@ function loadWeather()
 
         var extraRow = '';
         if (data.showprecipqty !== false) {
-          extraRow += '<span class="dw_precip_qty">'+activeIcon+' '+activePrecip1+' '+activeUnits+'</span>';
+          extraRow += '<span class="dw_precip_qty">'+activeIcon+' '+activePrecip1+'<span class="dw_unit"> '+activeUnits+'</span></span>';
         }
         if (data.showprecipprob && daily.precipitation_probability_max) {
-          extraRow += '<span class="dw_precipprob"><i class="wi wi-umbrella"></i> ' + daily.precipitation_probability_max[i] + '%</span>';
+          extraRow += '<span class="dw_precipprob"><i class="wi wi-umbrella"></i> ' + daily.precipitation_probability_max[i] + '<span class="dw_unit">%</span></span>';
         }
         if (data.showpreciphours && daily.precipitation_hours) {
-          extraRow += '<span class="dw_preciphours"><i class="wi wi-raindrop"></i> ' + daily.precipitation_hours[i] + 'h</span>';
+          extraRow += '<span class="dw_preciphours"><i class="wi wi-raindrop"></i> ' + daily.precipitation_hours[i] + '<span class="dw_unit">h</span></span>';
         }
         if (data.showuvindex && daily.uv_index_max) {
-          extraRow += '<span class="dw_uvindex">UV ' + Math.round(daily.uv_index_max[i]) + '</span>';
+          extraRow += '<span class="dw_uvindex"><span class="dw_unit">UV</span> ' + Math.round(daily.uv_index_max[i]) + '</span>';
         }
 
         var windRow = '';
         if (data.showdailywind && daily.wind_speed_10m_max) {
-          windRow += '<span class="dw_wind_avg"><i class="wi wi-strong-wind"></i> ' + Math.round(daily.wind_speed_10m_max[i]) + ' ' + (data.daily_units.wind_speed_10m_max || 'km/h') + '</span>';
+          windRow += '<span class="dw_wind_avg"><i class="wi wi-strong-wind"></i> ' + Math.round(daily.wind_speed_10m_max[i]) + '<span class="dw_unit"> '+(data.daily_units.wind_speed_10m_max || 'km/h')+'</span></span>';
           if (daily.wind_gusts_10m_max) {
-            windRow += '<span class="dw_wind_gust"><i class="wi wi-wind-beaufort-12"></i> ' + Math.round(daily.wind_gusts_10m_max[i]) + ' ' + (data.daily_units.wind_gusts_10m_max || 'km/h') + '</span>';
+            windRow += '<span class="dw_wind_gust"><i class="wi wi-wind-beaufort-12"></i> ' + Math.round(daily.wind_gusts_10m_max[i]) + '<span class="dw_unit"> '+(data.daily_units.wind_gusts_10m_max || 'km/h')+'</span></span>';
           }
         }
 
@@ -546,18 +575,23 @@ function loadWeather()
         
         var hourWindHtml = '';
         if (data.showhourlywind && hourly.wind_speed_10m) {
-          hourWindHtml = '<div class="hour_wind"><i class="wi wi-strong-wind"></i> '+hourly.wind_speed_10m[j]+' '+(data.hourly_units.wind_speed_10m || 'km/h')+'</div>';
+          var windUnit = data.hourly_units.wind_speed_10m || 'km/h';
+          hourWindHtml = '<div class="hour_wind"><i class="wi wi-strong-wind"></i> '+hourly.wind_speed_10m[j]+'<span class="hour_unit"> '+windUnit+'</span></div>';
         }
-        hourstring += '<div class="hour_box" id="hourly_box_'+j+'"><div class="hour_time">'+formatAMPM( new Date(hourly.time[j]))+'</div><div class="hour_icon">'+hourly.icon[j]+'</div><div class="hour_temp">'+hourly.temperature_2m[j]+' '+data.hourly_units.temperature_2m+'</div><div class="hour_feelslike">Feels Like</div><div class="hour_aparTemp">'+hourly.apparent_temperature[j]+' '+data.hourly_units.apparent_temperature+'</div><div class="hour_precip">'+activeIcon+' '+activePrecip +' '+activeType+'</div>'+hourWindHtml+'</div>'
+        var tempUnit = data.hourly_units.temperature_2m;
+        var tempCombo = hourly.temperature_2m[j]+' / '+hourly.apparent_temperature[j]+' '+tempUnit;
+        hourstring += '<div class="hour_box" id="hourly_box_'+j+'"><div class="hour_time">'+formatAMPM( new Date(hourly.time[j]))+'</div><div class="hour_icon">'+hourly.icon[j]+'</div><div class="hour_temp_combo">'+tempCombo+'</div><div class="hour_precip">'+activeIcon+' '+activePrecip +' '+activeType+'</div>'+hourWindHtml+'</div>'
       }
-      if (data.showhourlyweather === false) {
+      var cv = document.getElementById('currview').value;
+      var fullHV = (cv === 'upcomingWeeks' || cv === 'dualMonth');
+      if (data.showhourlyweather === false || fullHV) {
         $('#BottomBox').hide();
         $("#hourlyWeather").html('');
       } else {
         $('#BottomBox').show();
         $("#hourlyWeather").show().html(hourstring);
       }
-      resizeCal();
+      resizeCal(fullHV);
       window.dispatchEvent(new Event('resize'));
       fitOverlayStack();
     }
@@ -700,11 +734,17 @@ function fetchCalData()
 
 
 // Calculates the correct calendar height to fill the space below the photo and above the hourly strip.
-function resizeCal()
+// Pass fullHeight=true for views with no photo and no hourly strip (uses full screen height).
+function resizeCal(fullHeight)
 {
-  var cal_overlap = 178;
-  var bottomBoxH = $('#BottomBox').is(':visible') ? $('#BottomBox').height() : 0;
-  var h = ($('#screenContain').height() - $('#photoContain').height() - bottomBoxH) + cal_overlap;
+  var h;
+  if (fullHeight) {
+    h = $('#screenContain').height();
+  } else {
+    var cal_overlap = 178;
+    var bottomBoxH = $('#BottomBox').is(':visible') ? $('#BottomBox').height() : 0;
+    h = ($('#screenContain').height() - $('#photoContain').height() - bottomBoxH) + cal_overlap;
+  }
   $('#calendar').height(h);
   if (calendarInstance) calendarInstance.setOption('height', h);
   return h;

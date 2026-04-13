@@ -9,6 +9,9 @@ $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	$showweekly      = isset($_POST['showweekly']);
+	$showupcoming    = isset($_POST['showupcoming']);
+	$upcoming_weeks  = max(1, min(12, (int)($_POST['upcoming_weeks'] ?? 4)));
+	$showdualmonth   = isset($_POST['showdualmonth']);
 	$showmealie      = isset($_POST['showmealie']);
 	$shownotes       = isset($_POST['shownotes']);
 	$ui_font         = trim($_POST['ui_font']        ?? 'IBM Plex Sans');
@@ -48,6 +51,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		<div class="toggle-row">
 			<input type="checkbox" id="showweekly" name="showweekly" <?= $showweekly ? 'checked' : '' ?>>
 			<label for="showweekly">Weekly calendar view</label>
+		</div>
+		<div class="toggle-row">
+			<input type="checkbox" id="showupcoming" name="showupcoming" <?= $showupcoming ? 'checked' : '' ?>>
+			<label for="showupcoming">Upcoming weeks view</label>
+		</div>
+		<div class="toggle-row" style="margin-left:26px;align-items:center;gap:10px">
+			<label for="upcoming_weeks" style="font-weight:400;white-space:nowrap">Weeks to show</label>
+			<input type="number" id="upcoming_weeks" name="upcoming_weeks" min="1" max="12" step="1" value="<?= (int)$upcoming_weeks ?>" style="width:70px">
+		</div>
+		<div class="toggle-row">
+			<input type="checkbox" id="showdualmonth" name="showdualmonth" <?= $showdualmonth ? 'checked' : '' ?>>
+			<label for="showdualmonth">Two-month calendar view <small style="font-weight:400;color:#888">(no background image)</small></label>
 		</div>
 		<div class="toggle-row">
 			<input type="checkbox" id="showmealie" name="showmealie" <?= $showmealie ? 'checked' : '' ?>>

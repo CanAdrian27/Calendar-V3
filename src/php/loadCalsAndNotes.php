@@ -4,6 +4,9 @@ $showmealie         = false;
 $shownotes          = false;
 $showhourlyweather  = true;
 $cal_languages      = ['en', 'fr'];
+$showupcoming       = false;
+$upcoming_weeks     = 4;
+$showdualmonth      = false;
 if (file_exists('env_vars.php')) include('env_vars.php');
 
 $debug = isset($_GET['debug']);
@@ -14,12 +17,15 @@ $dir    = 'notes';
 $retArr['notes'] = scandir($dir);
 
 $views = ['dayGridMonth'];
-if (!empty($showweekly)) $views[] = 'timeGridWeek';
-if (!empty($showmealie)) $views[] = 'recipe';
-if (!empty($shownotes))  $views[] = 'notes';
+if (!empty($showweekly))    $views[] = 'timeGridWeek';
+if (!empty($showupcoming))  $views[] = 'upcomingWeeks';
+if (!empty($showdualmonth)) $views[] = 'dualMonth';
+if (!empty($showmealie))    $views[] = 'recipe';
+if (!empty($shownotes))     $views[] = 'notes';
 $retArr['validviews']        = implode(',', $views);
 $retArr['showhourlyweather'] = !empty($showhourlyweather);
 $retArr['cal_languages']     = is_array($cal_languages) && count($cal_languages) ? $cal_languages : ['en'];
+$retArr['upcoming_weeks']    = max(1, min(12, (int)$upcoming_weeks));
 
 if ($debug) {
 	echo debugPageHeader('loadCalsAndNotes');

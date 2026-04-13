@@ -31,6 +31,9 @@ $showpreciphours     = false;
 $showuvindex         = false;
 $showdailywind       = false;
 $showhourlywind      = false;
+$showupcoming        = false;
+$upcoming_weeks      = 4;
+$showdualmonth       = false;
 $cal_languages       = ['en', 'fr'];
 $ui_font             = 'IBM Plex Sans';
 $event_font_size     = 12;
@@ -53,6 +56,7 @@ function writeEnvVars() {
 	       $showweathericon, $showtemperature, $showfeelslike_box, $showfeelslike_combo,
 	       $showhourlyweather, $showsunrisesunset, $showmoonphase, $showprecipqty,
 	       $showprecipprob, $showpreciphours, $showuvindex, $showdailywind, $showhourlywind,
+	       $showupcoming, $upcoming_weeks, $showdualmonth,
 	       $feelslike_mode, $cal_languages, $ui_font,
 	       $event_font_size, $color_scheme, $color_scheme_base, $image_height,
 	       $wifi_ssid, $wifi_password, $pi_base_url, $mealieUsername, $mealiePassword, $mealieUrl;
@@ -85,6 +89,9 @@ function writeEnvVars() {
 	$php .= '$showuvindex = '         . ($showuvindex         ? 'true' : 'false') . ";\n";
 	$php .= '$showdailywind = '       . ($showdailywind       ? 'true' : 'false') . ";\n";
 	$php .= '$showhourlywind = '      . ($showhourlywind      ? 'true' : 'false') . ";\n";
+	$php .= '$showupcoming = '        . ($showupcoming        ? 'true' : 'false') . ";\n";
+	$php .= '$upcoming_weeks = '      . (int)$upcoming_weeks                      . ";\n";
+	$php .= '$showdualmonth = '       . ($showdualmonth       ? 'true' : 'false') . ";\n";
 	$php .= '$feelslike_mode = '      . var_export($feelslike_mode, true)          . ";\n";
 	$php .= '$cal_languages = '       . var_export($cal_languages,    true) . ";\n";
 	$php .= '$ui_font = '             . var_export($ui_font,           true) . ";\n";

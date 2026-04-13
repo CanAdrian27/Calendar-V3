@@ -162,6 +162,7 @@ html, body {
 .dw_precipprob { color: inherit; }
 .dw_preciphours { color: inherit; }
 .dw_uvindex { color: inherit; }
+.dw_unit { font-size: 0.75em; opacity: 0.8; }
 
 #cw_icon_big
 {
@@ -319,9 +320,19 @@ html, body {
 	 text-align: center;
 	 width: 8.33%
  }
- .hour_feelslike
- {
-	 font-size: 6px;
+ .hour_temp_combo {
+	 font-size: 0.75em;
+	 white-space: nowrap;
+	 overflow: hidden;
+	 text-overflow: ellipsis;
+ }
+ .hour_wind {
+	 white-space: nowrap;
+	 overflow: hidden;
+	 text-overflow: ellipsis;
+ }
+ .hour_unit {
+	 font-size: 0.75em;
  }
  .hour_icon 
  {
@@ -477,6 +488,17 @@ body.recipe-view #ski,
 body.recipe-view #weatherStack
 {
 	display: none;
+}
+
+body.no-photo-view #ski,
+body.no-photo-view #weatherStack
+{
+	display: none;
+}
+
+body.no-photo-view #calContain
+{
+	padding-top: 0;
 }
 
 .ski_hill_element
