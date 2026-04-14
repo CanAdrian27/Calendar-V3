@@ -23,10 +23,10 @@ function dbg($label, $value = null) {
 dbg('Calendars configured', count($calendars));
 
 foreach ($calendars as $cal) {
-	getCalendar($cal['cal'], $cal['postprocess']);
+	getCalendar($cal['cal'], $cal['postprocess'], $cal['name'] ?? '', $cal['indicator'] ?? '');
 }
 
-function getCalendar($url, $postProcessCal)
+function getCalendar($url, $postProcessCal, $calName = '', $indicator = '')
 {
 	$curl = curl_init();
 
@@ -54,6 +54,16 @@ function getCalendar($url, $postProcessCal)
 
 	dbg('Fetched URL', $url . ' — HTTP ' . $httpCode . ', ' . strlen($response) . ' bytes');
 
+	if ($httpCode < 200 || $httpCode >= 300) {
+		dbg('Error', "HTTP $httpCode — skipping (not a valid response)");
+		return;
+	}
+
+	if (stripos($response, 'BEGIN:VCALENDAR') === false) {
+		dbg('Error', 'Response does not contain BEGIN:VCALENDAR — not a valid iCalendar file, skipping');
+		return;
+	}
+
 	// Runna post-process: normalise DTSTART/DTEND to DATE-only format
 	if ($postProcessCal) {
 		$pattern     = '/(?<=DTSTART)(.*?)(?=\d\d\d\d\d\d\d\d\n)/mi';
@@ -64,6 +74,10 @@ function getCalendar($url, $postProcessCal)
 	}
 
 	$filename = getCalName($response);
+	if ($filename === '' && $calName !== '') {
+		$filename = str_ireplace([' ', "'", '#'], ['_', '', ''], $calName);
+		dbg('Fallback name', "X-WR-CALNAME not found — using admin name: $filename");
+	}
 	if ($filename === '') {
 		dbg('Error', 'Could not extract calendar name — file not saved');
 		return;
@@ -71,6 +85,17 @@ function getCalendar($url, $postProcessCal)
 
 	file_put_contents("calendars/$filename.ics", $response);
 	dbg('Saved', "calendars/$filename.ics");
+
+	// Update metadata map so the frontend knows the display name and indicator for this file
+	$metaFile = 'calendars/cal_metadata.json';
+	$meta = [];
+	if (file_exists($metaFile)) {
+		$decoded = json_decode(file_get_contents($metaFile), true);
+		if (is_array($decoded)) $meta = $decoded;
+	}
+	$meta[$filename] = ['name' => $calName, 'indicator' => $indicator];
+	file_put_contents($metaFile, json_encode($meta));
+	dbg('Metadata updated', "calendars/cal_metadata.json — $filename");
 }
 
 function getCalName($text)
@@ -84,8 +109,9 @@ function getCalName($text)
 	if (!is_numeric($end)) return '';
 
 	$unsafeName = substr($text, $start, $end - $start);
-	$safeName   = str_ireplace([' ', "'", '#'], ['_', '', ''], $unsafeName);
-	return $safeName;
+	$safeName   = preg_replace('/[^A-Za-z0-9_-]/', '_', $unsafeName);
+	$safeName   = trim($safeName, '_');
+	return $safeName !== '' ? $safeName : '';
 }
 
 if ($debug) {

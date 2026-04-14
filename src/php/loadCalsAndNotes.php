@@ -12,7 +12,14 @@ if (file_exists('env_vars.php')) include('env_vars.php');
 $debug = isset($_GET['debug']);
 
 $dir    = 'calendars';
-$retArr['calendars'] = scandir($dir);
+$retArr['calendars'] = array_values(array_filter(
+    scandir($dir) ?: [],
+    function($f) use ($dir) {
+        if (substr($f, -4) !== '.ics') return false;
+        $content = @file_get_contents("$dir/$f", false, null, 0, 64);
+        return $content !== false && stripos($content, 'BEGIN:VCALENDAR') !== false;
+    }
+));
 $dir    = 'notes';
 $retArr['notes'] = scandir($dir);
 
@@ -26,6 +33,13 @@ $retArr['validviews']        = implode(',', $views);
 $retArr['showhourlyweather'] = !empty($showhourlyweather);
 $retArr['cal_languages']     = is_array($cal_languages) && count($cal_languages) ? $cal_languages : ['en'];
 $retArr['upcoming_weeks']    = max(1, min(12, (int)$upcoming_weeks));
+
+$metaFile = 'calendars/cal_metadata.json';
+$retArr['cal_metadata'] = [];
+if (file_exists($metaFile)) {
+	$decoded = json_decode(file_get_contents($metaFile), true);
+	if (is_array($decoded)) $retArr['cal_metadata'] = $decoded;
+}
 
 if ($debug) {
 	echo debugPageHeader('loadCalsAndNotes');

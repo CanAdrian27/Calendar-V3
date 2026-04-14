@@ -74,7 +74,7 @@
 	#cal-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 14px; }
 	.cal-row {
 		display: grid;
-		grid-template-columns: 2fr 1fr auto auto;
+		grid-template-columns: 2fr 1fr 58px auto auto;
 		gap: 8px;
 		align-items: start;
 		background: #f8f9fb;
@@ -85,6 +85,8 @@
 	.cal-row input { margin-bottom: 0; }
 	.cal-row .pp-cell { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11px; color: #666; padding-top: 4px; }
 	.cal-row .pp-cell input { width: auto; }
+	.cal-row .indicator-cell { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11px; color: #666; padding-top: 4px; }
+	.cal-row .indicator-cell input { width: 42px; text-align: center; font-size: 16px; padding: 4px 2px; margin: 0; }
 	.btn-remove {
 		background: none;
 		border: 1px solid #fca5a5;

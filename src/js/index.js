@@ -136,7 +136,7 @@ function loadCal()
        var calViews = ['dayGridMonth', 'timeGridWeek', 'upcomingWeeks', 'dualMonth'];
        if (calViews.indexOf(initview) !== -1)
        {
-         makeCalendar(data.calendars, data.cal_languages, data.upcoming_weeks || 4);
+         makeCalendar(data.calendars, data.cal_languages, data.upcoming_weeks || 4, data.cal_metadata || {});
        } else if (initview === 'notes')
        {
          makeNotes();
@@ -337,7 +337,7 @@ function buildSteps(data)
 
 
 // Initialises FullCalendar with the provided .ics sources and a randomly chosen locale.
-function makeCalendar(data, languages, upcomingWeeks)
+function makeCalendar(data, languages, upcomingWeeks, calMeta)
 {
   var initview = document.getElementById('currview').value;
   var weeks = upcomingWeeks || 4;
@@ -351,6 +351,8 @@ function makeCalendar(data, languages, upcomingWeeks)
   }
 
   var calSources = []
+  var calInfoByUrl  = {};  // keyed by exact relative URL  e.g. 'calendars/Family.ics'
+  var calInfoByBase = {};  // keyed by lowercase basename  e.g. 'family'  (fallback for absolute URLs)
   var cnt = 0;
   data.forEach(function(key) {
    if(key[0]!='.')
@@ -360,6 +362,14 @@ function makeCalendar(data, languages, upcomingWeeks)
     var keyparts = key.split('.');
     calObj.format    = keyparts[1];
     calObj.className = 'cal_'+cnt;
+    var basename  = keyparts[0];
+    var meta      = (calMeta && calMeta[basename]) || {};
+    var nameStr   = (meta.name && meta.name.trim()) ? meta.name.trim() : basename;
+    var indicator = (meta.indicator && meta.indicator.trim()) ? meta.indicator.trim() : '';
+    var safeName  = 'cal-' + nameStr.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    var calInfo   = { safeName: safeName, indicator: indicator };
+    calInfoByUrl[calObj.url]           = calInfo;
+    calInfoByBase[basename.toLowerCase()] = calInfo;
     calSources.push(calObj)
     cnt += 1;
     }
@@ -404,10 +414,27 @@ function makeCalendar(data, languages, upcomingWeeks)
     center: 'title',
     },
    eventSources: calSources,
+   eventDidMount(info) {
+     var source = info.event.source;
+     if (!source) return;
+     var calInfo = calInfoByUrl[source.url];
+     if (!calInfo) {
+       var base = source.url.split('/').pop().replace(/\.[^.]+$/, '').toLowerCase();
+       calInfo = calInfoByBase[base];
+     }
+     if (!calInfo) return;
+     info.el.querySelectorAll('.fc-event-title').forEach(function(titleEl) {
+       titleEl.classList.add(calInfo.safeName);
+       if (calInfo.indicator) {
+         var span = document.createElement('span');
+         span.className = 'fc-cal-indicator';
+         span.textContent = calInfo.indicator + '\u00A0';
+         titleEl.insertBefore(span, titleEl.firstChild);
+       }
+     });
+   },
    eventSourceFailure(error) {
-      if (error instanceof JsonRequestError) {
-        console.log(`Request to ${error.response.url} failed`)
-      }
+      console.warn('Calendar source failed to load:', error);
     }
   })
   

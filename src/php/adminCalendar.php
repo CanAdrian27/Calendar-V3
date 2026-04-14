@@ -17,15 +17,18 @@ $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	// Calendars
 	$newCalendars = [];
-	$urls  = $_POST['cal_url']  ?? [];
-	$names = $_POST['cal_name'] ?? [];
-	$pps   = $_POST['cal_pp']   ?? [];
+	$urls       = $_POST['cal_url']       ?? [];
+	$names      = $_POST['cal_name']      ?? [];
+	$pps        = $_POST['cal_pp']        ?? [];
+	$indicators = $_POST['cal_indicator'] ?? [];
 	foreach ($urls as $i => $url) {
 		$url = trim($url);
 		if ($url === '') continue;
+		$indicator = mb_substr(trim($indicators[$i] ?? ''), 0, 2);
 		$newCalendars[] = [
 			'cal'         => $url,
 			'name'        => trim($names[$i] ?? ''),
+			'indicator'   => $indicator,
 			'postprocess' => isset($pps[$i]),
 		];
 	}
@@ -111,6 +114,10 @@ for ($i = count($calNamesForJs); $i < 10; $i++) {
 			<div class="cal-row">
 				<input type="url"  name="cal_url[]"  placeholder="Calendar URL"  value="<?= htmlspecialchars($cal['cal']  ?? '') ?>">
 				<input type="text" name="cal_name[]" placeholder="Display name"  value="<?= htmlspecialchars($cal['name'] ?? '') ?>">
+				<div class="indicator-cell">
+					<input type="text" name="cal_indicator[]" placeholder="★" maxlength="2" value="<?= htmlspecialchars($cal['indicator'] ?? '') ?>">
+					<span>Indicator</span>
+				</div>
 				<div class="pp-cell">
 					<input type="checkbox" name="cal_pp[<?= $i ?>]" <?= !empty($cal['postprocess']) ? 'checked' : '' ?>>
 					<span>Runna</span>
@@ -403,6 +410,10 @@ function addRow() {
 	row.innerHTML =
 		'<input type="url"  name="cal_url[]"  placeholder="Calendar URL">' +
 		'<input type="text" name="cal_name[]" placeholder="Display name">' +
+		'<div class="indicator-cell">' +
+			'<input type="text" name="cal_indicator[]" placeholder="★" maxlength="2">' +
+			'<span>Indicator</span>' +
+		'</div>' +
 		'<div class="pp-cell">' +
 			'<input type="checkbox" name="cal_pp[' + calIndex + ']">' +
 			'<span>Runna</span>' +
