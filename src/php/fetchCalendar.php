@@ -23,10 +23,10 @@ function dbg($label, $value = null) {
 dbg('Calendars configured', count($calendars));
 
 foreach ($calendars as $cal) {
-	getCalendar($cal['cal'], $cal['postprocess'], $cal['name'] ?? '', $cal['indicator'] ?? '');
+	getCalendar($cal['cal'], $cal['postprocess'], $cal['name'] ?? '', $cal['indicator'] ?? '', $cal['postprocess_time'] ?? '07:00');
 }
 
-function getCalendar($url, $postProcessCal, $calName = '', $indicator = '')
+function getCalendar($url, $postProcessCal, $calName = '', $indicator = '', $postProcessTime = '07:00')
 {
 	$curl = curl_init();
 
@@ -64,13 +64,21 @@ function getCalendar($url, $postProcessCal, $calName = '', $indicator = '')
 		return;
 	}
 
-	// Runna post-process: normalise DTSTART/DTEND to DATE-only format
+	// Convert all-day DATE events to timed events at the configured time
 	if ($postProcessCal) {
-		$pattern     = '/(?<=DTSTART)(.*?)(?=\d\d\d\d\d\d\d\d\n)/mi';
-		$response    = preg_replace($pattern, ';VALUE=DATE:', $response);
-		$pattern     = '/(?<=DTEND)(.*?)(?=\d\d\d\d\d\d\d\d\n)/mi';
-		$response    = preg_replace($pattern, ';VALUE=DATE:', $response);
-		dbg('Post-processed', 'Runna DATE-only normalisation applied');
+		$digits  = preg_replace('/[^0-9]/', '', $postProcessTime);
+		$hh      = str_pad(substr($digits, 0, 2), 2, '0');
+		$mm      = str_pad(substr($digits, 2, 2), 2, '0');
+		$timeIcs = $hh . $mm . '00';
+		// DTSTART;VALUE=DATE:YYYYMMDD  →  DTSTART:YYYYMMDDTHHMMSS
+		$response = preg_replace(
+			'/^DTSTART(?:;VALUE=DATE)?:(\d{8})\r?$/mi',
+			'DTSTART:$1T' . $timeIcs,
+			$response
+		);
+		// Remove DATE-only DTEND lines — they point to the next day which is wrong for timed events
+		$response = preg_replace('/^DTEND(?:;VALUE=DATE)?:\d{8}\r?$/mi', '', $response);
+		dbg('Post-processed', "Converted date-only events to timed at $hh:$mm");
 	}
 
 	$filename = getCalName($response);

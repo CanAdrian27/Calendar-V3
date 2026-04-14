@@ -21,15 +21,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	$names      = $_POST['cal_name']      ?? [];
 	$pps        = $_POST['cal_pp']        ?? [];
 	$indicators = $_POST['cal_indicator'] ?? [];
+	$times      = $_POST['cal_time']      ?? [];
 	foreach ($urls as $i => $url) {
 		$url = trim($url);
 		if ($url === '') continue;
 		$indicator = mb_substr(trim($indicators[$i] ?? ''), 0, 2);
 		$newCalendars[] = [
-			'cal'         => $url,
-			'name'        => trim($names[$i] ?? ''),
-			'indicator'   => $indicator,
-			'postprocess' => isset($pps[$i]),
+			'cal'              => $url,
+			'name'             => trim($names[$i] ?? ''),
+			'indicator'        => $indicator,
+			'postprocess'      => isset($pps[$i]),
+			'postprocess_time' => trim($times[$i] ?? '07:00'),
 		];
 	}
 	$calendars = $newCalendars;
@@ -119,8 +121,9 @@ for ($i = count($calNamesForJs); $i < 10; $i++) {
 					<span>Indicator</span>
 				</div>
 				<div class="pp-cell">
-					<input type="checkbox" name="cal_pp[<?= $i ?>]" <?= !empty($cal['postprocess']) ? 'checked' : '' ?>>
-					<span>Runna</span>
+					<input type="checkbox" name="cal_pp[<?= $i ?>]" <?= !empty($cal['postprocess']) ? 'checked' : '' ?> onchange="toggleTimeInput(this)">
+					<span>Date→Time</span>
+					<input type="time" name="cal_time[]" class="cal-time-input" value="<?= htmlspecialchars($cal['postprocess_time'] ?? '07:00') ?>" style="display:<?= !empty($cal['postprocess']) ? 'block' : 'none' ?>">
 				</div>
 				<button type="button" class="btn-remove" onclick="removeRow(this)">×</button>
 			</div>
@@ -403,6 +406,10 @@ for ($i = count($calNamesForJs); $i < 10; $i++) {
 
 <script>
 var calIndex = <?= count($calendars) ?>;
+function toggleTimeInput(cb) {
+	var t = cb.parentElement.querySelector('.cal-time-input');
+	if (t) t.style.display = cb.checked ? 'block' : 'none';
+}
 function addRow() {
 	var list = document.getElementById('cal-list');
 	var row  = document.createElement('div');
@@ -415,8 +422,9 @@ function addRow() {
 			'<span>Indicator</span>' +
 		'</div>' +
 		'<div class="pp-cell">' +
-			'<input type="checkbox" name="cal_pp[' + calIndex + ']">' +
-			'<span>Runna</span>' +
+			'<input type="checkbox" name="cal_pp[' + calIndex + ']" onchange="toggleTimeInput(this)">' +
+			'<span>Date\u2192Time</span>' +
+			'<input type="time" name="cal_time[]" class="cal-time-input" value="07:00" style="display:none">' +
 		'</div>' +
 		'<button type="button" class="btn-remove" onclick="removeRow(this)">×</button>';
 	list.appendChild(row);

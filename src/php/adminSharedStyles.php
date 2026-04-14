@@ -84,7 +84,8 @@
 	}
 	.cal-row input { margin-bottom: 0; }
 	.cal-row .pp-cell { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11px; color: #666; padding-top: 4px; }
-	.cal-row .pp-cell input { width: auto; }
+	.cal-row .pp-cell input[type=checkbox] { width: auto; }
+	.cal-row .pp-cell .cal-time-input { width: 90px; font-size: 12px; padding: 2px 4px; margin: 0; text-align: center; }
 	.cal-row .indicator-cell { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11px; color: #666; padding-top: 4px; }
 	.cal-row .indicator-cell input { width: 42px; text-align: center; font-size: 16px; padding: 4px 2px; margin: 0; }
 	.btn-remove {
