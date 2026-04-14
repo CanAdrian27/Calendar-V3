@@ -350,6 +350,7 @@ function makeCalendar(data, languages, upcomingWeeks, calMeta)
     restorePhoto();
   }
 
+
   var calSources = []
   var calInfoByUrl  = {};  // keyed by exact relative URL  e.g. 'calendars/Family.ics'
   var calInfoByBase = {};  // keyed by lowercase basename  e.g. 'family'  (fallback for absolute URLs)
@@ -382,12 +383,14 @@ function makeCalendar(data, languages, upcomingWeeks, calMeta)
   }
 
   var calHeight = resizeCal(hidePhoto);
+  // multiMonth view clips content when given a fixed pixel height — let it size naturally instead
+  var fcHeight = (initview === 'dualMonth') ? 'auto' : calHeight;
   var calendarEl = document.getElementById('calendar')
   var  calendar = new Calendar(calendarEl, {
     initialView: initview,
     initialDate: (initview === 'upcomingWeeks') ? new Date() : undefined,
     plugins: [dayGridPlugin, iCalendarPlugin, timeGridPlugin, listPlugin, multiMonthPlugin],
-    height: calHeight,
+    height: fcHeight,
     multiMonthMaxColumns: 1,
     views: {
       upcomingWeeks: {
@@ -399,6 +402,7 @@ function makeCalendar(data, languages, upcomingWeeks, calMeta)
         type: 'multiMonth',
         duration: { months: 2 },
         buttonText: '2 months',
+        expandRows: true,
       },
     },
     slotDuration:'01:00:00',
@@ -766,7 +770,7 @@ function resizeCal(fullHeight)
 {
   var h;
   if (fullHeight) {
-    h = $('#screenContain').height();
+    h = $('#screenContain').height() - 10; // 10px top margin applied via body.no-photo-view #calendar
   } else {
     var cal_overlap = 178;
     var bottomBoxH = $('#BottomBox').is(':visible') ? $('#BottomBox').height() : 0;

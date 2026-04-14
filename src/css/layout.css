@@ -501,6 +501,42 @@ body.no-photo-view #calContain
 	padding-top: 0;
 }
 
+body.no-photo-view #calendar
+{
+	margin-top: 10px;
+}
+
+body.no-photo-view .fc .fc-toolbar-title
+{
+	font-size: 4em;
+	text-align: center;
+	width: 100%;
+}
+
+/* dualMonth (multiMonth) view — transparent backgrounds, no border, no internal scroll */
+body.no-photo-view .fc-multimonth,
+body.no-photo-view .fc-multimonth-daygrid,
+body.no-photo-view .fc-multimonth-singlecol .fc-multimonth-header
+{
+	background: transparent !important;
+}
+body.no-photo-view .fc-multimonth
+{
+	border: none !important;
+	overflow: visible !important;
+}
+/* FullCalendar hides the last month's bottom border assuming the container provides it.
+   Since we removed the container border for transparency, restore it explicitly. */
+body.no-photo-view .fc-multimonth-singlecol .fc-multimonth-month:last-child .fc-multimonth-daygrid-table
+{
+	border-bottom-style: solid !important;
+}
+body.no-photo-view .fc-multimonth-title
+{
+	font-size: 2.2em;
+	padding: 0.4em 0;
+}
+
 .ski_hill_element
 {
 	width: 52px;
