@@ -48,7 +48,7 @@ The JavaScript frontend (`src/js/index.js`) is compiled by Webpack. PHP backend 
 
 ### Raspberry Pi
 
-- **Raspberry Pi OS** Bullseye or Bookworm (Desktop, 32-bit or 64-bit)
+- **Raspberry Pi OS** Bullseye (11), Bookworm (12), or Trixie (13) — Desktop, 32-bit or 64-bit
 - **Apache**, **PHP 8.2+**, **ImageMagick**, **Chromium** — all installed by `install.sh`
 - **Python 3** with `RPi.GPIO`, `gpiozero`, `keyboard`, `selenium` — all installed by `install.sh`
 
@@ -72,7 +72,7 @@ Transfer the repo to the Pi (USB drive, `scp`, or clone directly on the Pi):
 ```bash
 # From your Mac — copy the whole repo over
 rsync -av --exclude='node_modules' --exclude='dist' \
-  ./ pi@raspberrypi.local:~/Calendar-V3/
+  ./ [PI User]@[PI Address]:~/Calendar-V3/
 ```
 
 Or clone directly on the Pi and run `npm run build` there (requires Node.js on the Pi).
@@ -85,17 +85,37 @@ chmod +x install.sh
 ./install.sh
 ```
 
-`install.sh` does the following in one step:
+The script is interactive and will ask two questions before doing anything:
 
-1. Installs all system packages (`apache2`, `php`, `php-curl`, `php-imagick`, `libheif-dev`, `chromium-browser`, `chromium-chromedriver`, `python3-rpi.gpio`, `python3-gpiozero`, `xdotool`)
-2. Installs Python packages (`keyboard`, `selenium`) via pip
+**OS version** — auto-detected from `/etc/os-release`, but you can override:
+
+```
+1) Bullseye  (Debian 11)  —  X11 / LXDE
+2) Bookworm  (Debian 12)  —  Wayland / Wayfire
+3) Trixie    (Debian 13)  —  Wayland / Wayfire
+```
+
+**Screen rotation** — for portrait wall-mount installs:
+
+```
+0) No rotation
+1) 90°  clockwise   (portrait — cable at bottom)
+2) 180° upside down
+3) 270° clockwise   (portrait — cable at top)
+```
+
+`install.sh` then does the following:
+
+1. Installs system packages — correct Chromium package per OS version (`chromium-browser` on Bullseye, `chromium` + `chromium-driver` on Bookworm/Trixie), plus `apache2`, `php`, `php-imagick`, `python3-gpiozero`, GPIO library, and display tools (`xdotool` on X11; `wlopm` on Wayland)
+2. Installs Python packages (`keyboard`, `selenium`) via pip, with `--break-system-packages` on Bookworm/Trixie
 3. Deploys `dist/` to `/var/www/html/dist/` with correct `www-data` permissions
 4. Configures the Apache vhost (points to `/var/www/html/dist/`, disables the default site)
-5. Copies Python scripts to `/usr/local/lib/calendar/`
-6. Installs and enables the `calendar-motion` systemd service and `calendar-scrape` timer
+5. Copies Python scripts to `/usr/local/lib/calendar/` and patches `motion.py` to use the correct display-control command for the selected session type (`xset dpms` on X11; `wlopm` on Wayland)
+6. Installs and enables the `calendar-motion` systemd service and `calendar-scrape` timer, patching the service environment for Wayland if needed
 7. Installs the Chromium kiosk autostart entry (`~/.config/autostart/`)
-8. Disables screen blanking in LXDE
-9. Sets the Pi to boot to desktop with autologin
+8. Disables screen blanking — via LXDE autostart on Bullseye, or via `wayfire.ini` idle settings on Bookworm/Trixie
+9. Applies screen rotation if requested — writes `display_rotate=N` to the boot config, and adds a Wayfire `[output:HDMI-A-1]` transform on Wayland installs
+10. Sets the Pi to boot to desktop with autologin
 
 ### 4. Configure
 
@@ -176,7 +196,7 @@ Each toggle switch needs a 1kΩ resistor (1kΩ–10kΩ works). The refresh and t
 
 ### Motion sensor
 
-Connect a standard HC-SR501 or compatible PIR sensor to GPIO4 (BCM). The sensor controls display power via `xset dpms` — it turns the screen off after 15 minutes of no motion and back on when motion is detected.
+Connect a standard HC-SR501 or compatible PIR sensor to GPIO4 (BCM). The sensor controls display power — turning the screen off after 15 minutes of no motion and back on when motion is detected. `install.sh` patches `motion.py` to use the correct method: `xset dpms` on X11 (Bullseye), or `wlopm` on Wayland (Bookworm/Trixie).
 
 ---
 
@@ -233,7 +253,8 @@ After install, `/var/www/html/dist/` is owned by `www-data:www-data`. The permis
 **Display doesn't wake on motion**
 ```bash
 sudo journalctl -u calendar-motion -f
-# Check DISPLAY and XAUTHORITY are correct for your Pi user/session
+# On X11: check DISPLAY=:0 and XAUTHORITY are correct
+# On Wayland: check WAYLAND_DISPLAY=wayland-1 and XDG_RUNTIME_DIR=/run/user/1000
 ```
 
 **Ski data is stale or missing**
@@ -241,7 +262,8 @@ sudo journalctl -u calendar-motion -f
 sudo systemctl start calendar-scrape.service
 sudo journalctl -u calendar-scrape -n 50
 # Chromedriver version must match installed Chromium:
-chromium-browser --version
+chromium --version        # Bookworm / Trixie
+chromium-browser --version  # Bullseye
 chromedriver --version
 ```
 
