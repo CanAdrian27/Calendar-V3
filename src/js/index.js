@@ -223,6 +223,8 @@ function makeQRItem(dataUrl, label)
 }
 function makeRecipe()
 {
+  $('body').removeClass('no-photo-view');
+  $('#photoContain').show();
   var calendarEl = document.getElementById('calendar')
   $.ajax({
    type: "POST",
