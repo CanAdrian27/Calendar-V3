@@ -38,6 +38,11 @@ module.exports = {
     path: path.join(__dirname, 'dist'),
     filename: 'index.js',
   },
+  // This is a localhost kiosk app — bundle size limits for public internet
+  // apps don't apply here. Suppress the advisory warnings.
+  performance: {
+    hints: false,
+  },
   plugins: [
     new HtmlWebpackPlugin({
       template: './src/index.html'
