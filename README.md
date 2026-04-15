@@ -56,7 +56,7 @@ The JavaScript frontend (`src/js/index.js`) is compiled by Webpack. PHP backend 
 
 ## First-time install
 
-### 1. On your Mac — build the project
+### 1. On your Mac — clone and build
 
 ```bash
 git clone git@github.com:CanAdrian27/Calendar-V3.git
@@ -65,17 +65,13 @@ npm install
 npm run build
 ```
 
-### 2. Copy to the Pi
-
-Transfer the repo to the Pi (USB drive, `scp`, or clone directly on the Pi):
+### 2. Copy the repo (including `dist/`) to the Pi
 
 ```bash
-# From your Mac — copy the whole repo over
-rsync -av --exclude='node_modules' --exclude='dist' \
+# From your Mac — copy the whole repo including the built dist/ folder
+rsync -av --exclude='node_modules' \
   ./ [PI User]@[PI Address]:~/Calendar-V3/
 ```
-
-Or clone directly on the Pi and run `npm run build` there (requires Node.js on the Pi).
 
 ### 3. On the Pi — run the install script
 

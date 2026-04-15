@@ -122,11 +122,18 @@ fi
 COMMON_PKGS="apache2 php php-curl php-imagick libheif-dev python3-pip $GPIO_PKG python3-gpiozero"
 
 if $USE_WAYLAND; then
-  # wlopm: DPMS on/off for wlroots-based Wayland compositors (replaces xset dpms)
   # xdotool is NOT installed — it does not work under Wayland; the `keyboard`
   # Python library handles keystrokes via /dev/input and works on both sessions.
-  sudo apt-get install -y $COMMON_PKGS $CHROMIUM_PKGS wlopm 2>/dev/null \
-    || sudo apt-get install -y $COMMON_PKGS $CHROMIUM_PKGS
+  sudo apt-get install -y $COMMON_PKGS $CHROMIUM_PKGS
+
+  # wlopm: DPMS on/off for wlroots-based Wayland compositors (replaces xset dpms).
+  # Installed separately so a missing package doesn't corrupt the main install.
+  if apt-cache show wlopm &>/dev/null; then
+    sudo apt-get install -y wlopm
+  else
+    warn "wlopm not found in apt — screen on/off via PIR sensor will not work."
+    warn "You can build it from source: https://github.com/varmd/wlopm"
+  fi
 else
   # Bullseye / X11
   sudo apt-get install -y $COMMON_PKGS $CHROMIUM_PKGS xdotool
@@ -165,11 +172,28 @@ success "Web root deployed."
 
 # ── Apache ────────────────────────────────────────────────────────────────────
 info "Configuring Apache…"
+
+# Enable PHP module — detect the installed version (php8.2, php8.3, etc.)
+PHP_MOD=$(ls /etc/apache2/mods-available/php*.conf 2>/dev/null \
+  | head -1 | xargs -r basename | sed 's/\.conf//')
+if [[ -n "$PHP_MOD" ]]; then
+  sudo a2enmod "$PHP_MOD"
+  info "Enabled Apache module: $PHP_MOD"
+else
+  warn "No PHP Apache module found — PHP pages may not work."
+fi
+
+# Enable mod_rewrite (required for AllowOverride All in the vhost)
+sudo a2enmod rewrite
+
 sudo cp "$REPO_DIR/pi/apache/calendar.conf" /etc/apache2/sites-available/calendar.conf
 sudo a2ensite calendar
 sudo a2dissite 000-default.conf 2>/dev/null || true
-sudo systemctl reload apache2
-success "Apache configured."
+
+# Enable Apache at boot and start (or restart) it now
+sudo systemctl enable apache2
+sudo systemctl restart apache2
+success "Apache configured and started."
 
 # ── Python scripts ────────────────────────────────────────────────────────────
 info "Installing Python scripts → $SCRIPTS_DIR…"
@@ -212,6 +236,11 @@ success "Services enabled and started."
 info "Configuring Chromium kiosk autostart…"
 mkdir -p "$AUTOSTART_DIR"
 cp "$REPO_DIR/pi/autostart/calendar-kiosk.desktop" "$AUTOSTART_DIR/"
+
+# Bullseye uses chromium-browser; Bookworm/Trixie use chromium
+if ! $USE_WAYLAND; then
+  sed -i 's|^Exec=chromium |Exec=chromium-browser |' "$AUTOSTART_DIR/calendar-kiosk.desktop"
+fi
 success "Kiosk autostart configured."
 
 # ── Screen blanking ───────────────────────────────────────────────────────────
@@ -251,36 +280,51 @@ success "Screen blanking disabled."
 if [[ "$DISPLAY_ROTATE" -ne 0 ]]; then
   info "Configuring screen rotation…"
 
-  # Firmware-level rotation (works on all versions)
-  if [[ -f "$BOOT_CONFIG" ]]; then
-    sudo sed -i '/^display_rotate/d' "$BOOT_CONFIG"
-    echo "display_rotate=$DISPLAY_ROTATE" | sudo tee -a "$BOOT_CONFIG" > /dev/null
-    success "Firmware: display_rotate=$DISPLAY_ROTATE written to $BOOT_CONFIG"
-  else
-    warn "$BOOT_CONFIG not found — skipping firmware rotation."
-  fi
-
-  # Wayland compositor rotation (Wayfire output transform)
   if $USE_WAYLAND; then
+    # Wayland / Wayfire — rotation is handled entirely by the compositor.
+    # Do NOT also write display_rotate to config.txt: with the KMS driver the
+    # firmware rotation and Wayfire transform both apply, causing double rotation.
+
+    # Detect the connected HDMI output name from sysfs (e.g. HDMI-A-1, HDMI-A-2)
+    HDMI_OUTPUT="HDMI-A-1"  # fallback
+    for card in /sys/class/drm/card*-HDMI-A-*; do
+      if [[ -f "$card/status" ]] && grep -q "^connected" "$card/status" 2>/dev/null; then
+        HDMI_OUTPUT="${card##*card*-}"
+        break
+      fi
+    done
+    info "Detected Wayland output: $HDMI_OUTPUT"
+
     mkdir -p "$(dirname "$WAYFIRE_CFG")"
     touch "$WAYFIRE_CFG"
     chown pi:pi "$WAYFIRE_CFG" 2>/dev/null || true
 
-    if grep -q '^\[output:HDMI-A-1\]' "$WAYFIRE_CFG" 2>/dev/null; then
+    SECTION="[output:$HDMI_OUTPUT]"
+    if grep -q "^\[output:${HDMI_OUTPUT}\]" "$WAYFIRE_CFG" 2>/dev/null; then
       # Section exists — update or insert transform line
-      if grep -A5 '^\[output:HDMI-A-1\]' "$WAYFIRE_CFG" | grep -q '^transform'; then
+      if grep -A5 "^\[output:${HDMI_OUTPUT}\]" "$WAYFIRE_CFG" | grep -q '^transform'; then
         sudo -u pi sed -i \
-          '/^\[output:HDMI-A-1\]/,/^\[/{s/^transform.*/transform = '"$WAYFIRE_TRANSFORM"'/}' \
+          "/^\[output:${HDMI_OUTPUT}\]/,/^\[/{s/^transform.*/transform = ${WAYFIRE_TRANSFORM}/}" \
           "$WAYFIRE_CFG"
       else
         sudo -u pi sed -i \
-          "/^\[output:HDMI-A-1\]/a transform = $WAYFIRE_TRANSFORM" "$WAYFIRE_CFG"
+          "/^\[output:${HDMI_OUTPUT}\]/a transform = ${WAYFIRE_TRANSFORM}" "$WAYFIRE_CFG"
       fi
     else
-      printf '\n[output:HDMI-A-1]\ntransform = %s\n' "$WAYFIRE_TRANSFORM" \
+      printf '\n[output:%s]\ntransform = %s\n' "$HDMI_OUTPUT" "$WAYFIRE_TRANSFORM" \
         | sudo -u pi tee -a "$WAYFIRE_CFG" > /dev/null
     fi
-    success "Wayfire: transform=$WAYFIRE_TRANSFORM written to $WAYFIRE_CFG"
+    success "Wayfire: [output:$HDMI_OUTPUT] transform=$WAYFIRE_TRANSFORM written to $WAYFIRE_CFG"
+
+  else
+    # X11 / Bullseye — firmware-level rotation via config.txt
+    if [[ -f "$BOOT_CONFIG" ]]; then
+      sudo sed -i '/^display_rotate/d' "$BOOT_CONFIG"
+      echo "display_rotate=$DISPLAY_ROTATE" | sudo tee -a "$BOOT_CONFIG" > /dev/null
+      success "Firmware: display_rotate=$DISPLAY_ROTATE written to $BOOT_CONFIG"
+    else
+      warn "$BOOT_CONFIG not found — skipping firmware rotation."
+    fi
   fi
 fi
 
@@ -299,7 +343,11 @@ echo ""
 echo "  OS:      $OS_LABEL"
 echo "  Session: $( $USE_WAYLAND && echo 'Wayland / Wayfire' || echo 'X11 / LXDE' )"
 if [[ "$DISPLAY_ROTATE" -ne 0 ]]; then
-  echo "  Rotation: $DISPLAY_ROTATE ($WAYFIRE_TRANSFORM)"
+  if $USE_WAYLAND; then
+    echo "  Rotation: $WAYFIRE_TRANSFORM via Wayfire [output:${HDMI_OUTPUT:-HDMI-A-1}]"
+  else
+    echo "  Rotation: display_rotate=$DISPLAY_ROTATE in $BOOT_CONFIG"
+  fi
 fi
 echo ""
 echo "  Next steps:"
