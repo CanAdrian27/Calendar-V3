@@ -139,6 +139,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	previewFont(document.getElementById('ui_font').value);
 	</script>
 
+	<p class="card-hint" style="margin-top:8px">Weather location and forecast settings have moved to the <a href="adminWeather.php">Weather</a> page.</p>
+
 	<button type="submit" class="btn-save">Save Settings</button>
 </form>
 

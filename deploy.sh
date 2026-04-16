@@ -37,6 +37,7 @@ TARGET="$PI_USER@$PI_HOST"
 # ── Sync dist/ ────────────────────────────────────────────────────────────────
 info "Syncing dist/ → $TARGET:${WEB_ROOT}…"
 rsync -avz --progress \
+  --rsync-path="sudo rsync" \
   --exclude='env_vars.php' \
   --exclude='toggles.json' \
   --exclude='schedule.json' \

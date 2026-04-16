@@ -52,24 +52,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	$showclock           = isset($_POST['showclock']);
 	$showquote           = isset($_POST['showquote']);
 	$showword            = isset($_POST['showword']);
-	$showcurrentweather  = isset($_POST['showcurrentweather']);
-	$showwindspeed       = isset($_POST['showwindspeed']);
-	$showweathericon     = isset($_POST['showweathericon']);
-	$showtemperature     = isset($_POST['showtemperature']);
-	$showfeelslike_box   = isset($_POST['showfeelslike_box']);
-	$showfeelslike_combo = isset($_POST['showfeelslike_combo']);
-	$allowedModes        = ['apparent', 'humidex', 'auto'];
-	$feelslike_mode      = in_array($_POST['feelslike_mode'] ?? '', $allowedModes) ? $_POST['feelslike_mode'] : 'apparent';
-	$showhourlyweather   = isset($_POST['showhourlyweather']);
-	$showski             = isset($_POST['showski']);
-	$showsunrisesunset   = isset($_POST['showsunrisesunset']);
-	$showmoonphase       = isset($_POST['showmoonphase']);
-	$showprecipqty       = isset($_POST['showprecipqty']);
-	$showprecipprob      = isset($_POST['showprecipprob']);
-	$showpreciphours     = isset($_POST['showpreciphours']);
-	$showuvindex         = isset($_POST['showuvindex']);
-	$showdailywind       = isset($_POST['showdailywind']);
-	$showhourlywind      = isset($_POST['showhourlywind']);
 
 	if (writeEnvVars()) {
 		$saved = true;
@@ -315,90 +297,7 @@ for ($i = count($calNamesForJs); $i < 10; $i++) {
 			<input type="checkbox" id="showword" name="showword" <?= $showword ? 'checked' : '' ?>>
 			<label for="showword">Word of the day</label>
 		</div>
-		<hr class="section-divider">
-		<div class="toggle-row">
-			<input type="checkbox" id="showcurrentweather" name="showcurrentweather" <?= $showcurrentweather ? 'checked' : '' ?>>
-			<label for="showcurrentweather">Current weather</label>
-		</div>
-		<div class="toggle-row" style="margin-left:26px">
-			<input type="checkbox" id="showwindspeed" name="showwindspeed" <?= $showwindspeed ? 'checked' : '' ?>>
-			<label for="showwindspeed">Wind speed</label>
-		</div>
-		<div class="toggle-row" style="margin-left:26px">
-			<input type="checkbox" id="showweathericon" name="showweathericon" <?= $showweathericon ? 'checked' : '' ?>>
-			<label for="showweathericon">Weather icon</label>
-		</div>
-		<div class="toggle-row" style="margin-left:26px">
-			<input type="checkbox" id="showtemperature" name="showtemperature" <?= $showtemperature ? 'checked' : '' ?>>
-			<label for="showtemperature">Temperature</label>
-		</div>
-		<div class="toggle-row" style="margin-left:52px">
-			<input type="checkbox" id="showfeelslike_box" name="showfeelslike_box" <?= $showfeelslike_box ? 'checked' : '' ?>>
-			<label for="showfeelslike_box">Feels-like — own box</label>
-		</div>
-		<div class="toggle-row" style="margin-left:52px">
-			<input type="checkbox" id="showfeelslike_combo" name="showfeelslike_combo" <?= $showfeelslike_combo ? 'checked' : '' ?>>
-			<label for="showfeelslike_combo">Feels-like — combined with temperature <small style="font-weight:400;color:#888">(e.g. 10°C / 8°C)</small></label>
-		</div>
-		<div style="margin-left:52px;margin-bottom:10px">
-			<label style="font-size:13px;font-weight:600;margin-bottom:6px;display:block">Feels-like calculation</label>
-			<div class="toggle-row" style="margin-bottom:4px">
-				<input type="radio" id="feelslike_apparent" name="feelslike_mode" value="apparent" <?= ($feelslike_mode === 'apparent') ? 'checked' : '' ?>>
-				<label for="feelslike_apparent" style="font-weight:400">Apparent temperature <small style="color:#888">(Open-Meteo — wind chill + heat index)</small></label>
-			</div>
-			<div class="toggle-row" style="margin-bottom:4px">
-				<input type="radio" id="feelslike_humidex" name="feelslike_mode" value="humidex" <?= ($feelslike_mode === 'humidex') ? 'checked' : '' ?>>
-				<label for="feelslike_humidex" style="font-weight:400">Humidex <small style="color:#888">(Environment Canada formula)</small></label>
-			</div>
-			<div class="toggle-row">
-				<input type="radio" id="feelslike_auto" name="feelslike_mode" value="auto" <?= ($feelslike_mode === 'auto') ? 'checked' : '' ?>>
-				<label for="feelslike_auto" style="font-weight:400">Auto <small style="color:#888">(humidex when ≥ 20°C, apparent temperature when colder)</small></label>
-			</div>
-		</div>
-		<div class="toggle-row">
-			<input type="checkbox" id="showhourlyweather" name="showhourlyweather" <?= $showhourlyweather ? 'checked' : '' ?>>
-			<label for="showhourlyweather">Hourly weather strip</label>
-		</div>
-		<div class="toggle-row">
-			<input type="checkbox" id="showski" name="showski" <?= $showski ? 'checked' : '' ?>>
-			<label for="showski">Ski conditions <small style="font-weight:400;color:#888">(Nov. – Mar. only)</small></label>
-		</div>
-		<hr class="section-divider">
-		<label style="margin-bottom:10px;display:block">Calendar day boxes</label>
-		<div class="toggle-row" style="margin-left:26px">
-			<input type="checkbox" id="showsunrisesunset" name="showsunrisesunset" <?= $showsunrisesunset ? 'checked' : '' ?>>
-			<label for="showsunrisesunset">Sunrise &amp; sunset</label>
-		</div>
-		<div class="toggle-row" style="margin-left:52px">
-			<input type="checkbox" id="showmoonphase" name="showmoonphase" <?= $showmoonphase ? 'checked' : '' ?>>
-			<label for="showmoonphase">Moon phase icons</label>
-		</div>
-		<div class="toggle-row" style="margin-left:26px">
-			<input type="checkbox" id="showprecipqty" name="showprecipqty" <?= $showprecipqty ? 'checked' : '' ?>>
-			<label for="showprecipqty">Precipitation quantity</label>
-		</div>
-		<div class="toggle-row" style="margin-left:26px">
-			<input type="checkbox" id="showprecipprob" name="showprecipprob" <?= $showprecipprob ? 'checked' : '' ?>>
-			<label for="showprecipprob">Precipitation probability</label>
-		</div>
-		<div class="toggle-row" style="margin-left:26px">
-			<input type="checkbox" id="showpreciphours" name="showpreciphours" <?= $showpreciphours ? 'checked' : '' ?>>
-			<label for="showpreciphours">Precipitation hours</label>
-		</div>
-		<div class="toggle-row" style="margin-left:26px">
-			<input type="checkbox" id="showuvindex" name="showuvindex" <?= $showuvindex ? 'checked' : '' ?>>
-			<label for="showuvindex">UV index</label>
-		</div>
-		<div class="toggle-row" style="margin-left:26px">
-			<input type="checkbox" id="showdailywind" name="showdailywind" <?= $showdailywind ? 'checked' : '' ?>>
-			<label for="showdailywind">Wind speed &amp; gust max <small style="font-weight:400;color:#888">(daily forecast row)</small></label>
-		</div>
-		<hr class="section-divider">
-		<label style="margin-bottom:10px;display:block">Hourly weather strip</label>
-		<div class="toggle-row" style="margin-left:26px">
-			<input type="checkbox" id="showhourlywind" name="showhourlywind" <?= $showhourlywind ? 'checked' : '' ?>>
-			<label for="showhourlywind">Wind speed <small style="font-weight:400;color:#888">(hourly strip)</small></label>
-		</div>
+		<p class="card-hint" style="margin-top:8px">Weather settings have moved to the <a href="adminWeather.php">Weather</a> page.</p>
 	</div>
 
 	<button type="submit" class="btn-save">Save Settings</button>

@@ -12,6 +12,8 @@ WEB_ROOT="/var/www/html/dist"
 SCRIPTS_DIR="/usr/local/lib/calendar"
 AUTOSTART_DIR="/home/pi/.config/autostart"
 WAYFIRE_CFG="/home/pi/.config/wayfire.ini"
+LABWC_CFG_DIR="/home/pi/.config/labwc"
+LABWC_AUTOSTART="/home/pi/.config/labwc/autostart"
 REPO_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 GREEN='\033[0;32m'; YELLOW='\033[1;33m'; RED='\033[0;31m'; NC='\033[0m'
@@ -45,7 +47,7 @@ echo ""
 echo "  ┌─ Select your Raspberry Pi OS version ─────────────────┐"
 echo "  │  1)  Bullseye  (Debian 11)  —  X11 / LXDE            │"
 echo "  │  2)  Bookworm  (Debian 12)  —  Wayland / Wayfire      │"
-echo "  │  3)  Trixie    (Debian 13)  —  Wayland / Wayfire      │"
+echo "  │  3)  Trixie    (Debian 13)  —  Wayland / labwc        │"
 echo "  └───────────────────────────────────────────────────────┘"
 echo ""
 
@@ -83,6 +85,10 @@ esac
 
 info "Selected: $OS_LABEL"
 
+# Compositor: Bookworm uses Wayfire; Trixie uses labwc
+COMPOSITOR="wayfire"
+[[ "$VERSION_CHOICE" == "3" ]] && COMPOSITOR="labwc"
+
 # ── Screen rotation ───────────────────────────────────────────────────────────
 echo ""
 echo "  ┌─ Screen rotation ──────────────────────────────────────┐"
@@ -119,7 +125,7 @@ if [[ "$VERSION_CHOICE" == "3" ]]; then
   apt-cache show python3-rpi-lgpio &>/dev/null && GPIO_PKG="python3-rpi-lgpio" || true
 fi
 
-COMMON_PKGS="apache2 php php-curl php-imagick libheif-dev python3-pip $GPIO_PKG python3-gpiozero"
+COMMON_PKGS="apache2 php libapache2-mod-php php-curl php-imagick libheif-dev python3-pip $GPIO_PKG python3-gpiozero"
 
 if $USE_WAYLAND; then
   # xdotool is NOT installed — it does not work under Wayland; the `keyboard`
@@ -134,6 +140,15 @@ if $USE_WAYLAND; then
     warn "wlopm not found in apt — screen on/off via PIR sensor will not work."
     warn "You can build it from source: https://github.com/varmd/wlopm"
   fi
+
+  # wlr-randr: output configuration for labwc (screen rotation)
+  if [[ "$COMPOSITOR" == "labwc" ]]; then
+    if apt-cache show wlr-randr &>/dev/null; then
+      sudo apt-get install -y wlr-randr
+    else
+      warn "wlr-randr not found — screen rotation will not be configured."
+    fi
+  fi
 else
   # Bullseye / X11
   sudo apt-get install -y $COMMON_PKGS $CHROMIUM_PKGS xdotool
@@ -141,13 +156,10 @@ fi
 
 # ── Python packages ───────────────────────────────────────────────────────────
 info "Installing Python packages…"
-if $USE_WAYLAND; then
-  # Bookworm+ requires --break-system-packages for pip outside a venv
-  sudo pip3 install --break-system-packages keyboard selenium
-else
-  sudo pip3 install keyboard selenium 2>/dev/null \
-    || sudo pip3 install --break-system-packages keyboard selenium
-fi
+# Fall back to --no-deps if pip conflicts with an apt-managed package (e.g. urllib3)
+# --ignore-installed bypasses the uninstall step, avoiding conflicts with
+# apt-managed packages that have no pip RECORD file (e.g. urllib3 on Trixie)
+sudo pip3 install --break-system-packages --ignore-installed keyboard selenium
 success "Packages installed."
 
 # ── Web root ──────────────────────────────────────────────────────────────────
@@ -170,6 +182,26 @@ for dir in images images_supports weather calendars ski word notes; do
 done
 success "Web root deployed."
 
+# ── PHP configuration ─────────────────────────────────────────────────────────
+info "Configuring PHP upload limits…"
+
+# Detect the installed PHP version (8.2, 8.3, etc.)
+PHP_VER=$(php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;' 2>/dev/null || echo "")
+if [[ -n "$PHP_VER" ]]; then
+  PHP_INI_DIR="/etc/php/$PHP_VER/apache2/conf.d"
+  sudo mkdir -p "$PHP_INI_DIR"
+  sudo tee "$PHP_INI_DIR/99-calendar.ini" > /dev/null <<EOF
+; Calendar V3 — increased limits for image uploads via the admin panel
+upload_max_filesize = 50M
+post_max_size       = 55M
+max_file_uploads    = 20
+memory_limit        = 256M
+EOF
+  success "PHP limits set (upload 50M, post 55M, memory 256M) in $PHP_INI_DIR/99-calendar.ini"
+else
+  warn "Could not detect PHP version — set upload_max_filesize and post_max_size manually in php.ini"
+fi
+
 # ── Apache ────────────────────────────────────────────────────────────────────
 info "Configuring Apache…"
 
@@ -183,12 +215,29 @@ else
   warn "No PHP Apache module found — PHP pages may not work."
 fi
 
-# Enable mod_rewrite (required for AllowOverride All in the vhost)
+# Enable mod_rewrite
 sudo a2enmod rewrite
 
-sudo cp "$REPO_DIR/pi/apache/calendar.conf" /etc/apache2/sites-available/calendar.conf
-sudo a2ensite calendar
-sudo a2dissite 000-default.conf 2>/dev/null || true
+# Point the default site at dist/ rather than creating a new vhost
+# (avoids a2ensite/a2dissite ordering issues on fresh installs)
+DEFAULT_CONF="/etc/apache2/sites-available/000-default.conf"
+sudo sed -i "s|DocumentRoot /var/www/html$|DocumentRoot $WEB_ROOT|" "$DEFAULT_CONF"
+# Add or replace the Directory block to grant access and allow .htaccess
+if grep -q "<Directory /var/www/html" "$DEFAULT_CONF"; then
+  sudo sed -i "s|<Directory /var/www/html[^>]*>|<Directory $WEB_ROOT>|" "$DEFAULT_CONF"
+else
+  sudo sed -i "/<\/VirtualHost>/i\\
+\\t<Directory $WEB_ROOT>\\
+\\t\\tOptions -Indexes +FollowSymLinks\\
+\\t\\tAllowOverride All\\
+\\t\\tRequire all granted\\
+\\t<\\/Directory>" "$DEFAULT_CONF"
+fi
+sudo a2ensite 000-default
+
+# Validate config before restarting
+sudo apache2ctl configtest 2>&1 | grep -v "^AH00558" \
+  || error "Apache config test failed — check the output above."
 
 # Enable Apache at boot and start (or restart) it now
 sudo systemctl enable apache2
@@ -205,8 +254,8 @@ sudo chmod 755 "$SCRIPTS_DIR/"*.py
 # Patch motion.py display on/off for Wayland (xset dpms → wlopm)
 if $USE_WAYLAND; then
   sudo sed -i \
-    -e "s|XAUTHORITY=/home/pi/.Xauthority DISPLAY=:0 xset dpms force on|WAYLAND_DISPLAY=wayland-1 XDG_RUNTIME_DIR=/run/user/1000 wlopm --on HDMI-A-1|g" \
-    -e "s|XAUTHORITY=/home/pi/.Xauthority DISPLAY=:0 xset dpms force off|WAYLAND_DISPLAY=wayland-1 XDG_RUNTIME_DIR=/run/user/1000 wlopm --off HDMI-A-1|g" \
+    -e "s|XAUTHORITY=/home/pi/.Xauthority DISPLAY=:0 xset dpms force on|WAYLAND_DISPLAY=wayland-1 XDG_RUNTIME_DIR=/run/user/1000 wlopm --on|g" \
+    -e "s|XAUTHORITY=/home/pi/.Xauthority DISPLAY=:0 xset dpms force off|WAYLAND_DISPLAY=wayland-1 XDG_RUNTIME_DIR=/run/user/1000 wlopm --off|g" \
     "$SCRIPTS_DIR/motion.py"
   info "Patched motion.py: xset dpms → wlopm"
 fi
@@ -234,18 +283,64 @@ success "Services enabled and started."
 
 # ── Kiosk autostart ───────────────────────────────────────────────────────────
 info "Configuring Chromium kiosk autostart…"
-mkdir -p "$AUTOSTART_DIR"
-cp "$REPO_DIR/pi/autostart/calendar-kiosk.desktop" "$AUTOSTART_DIR/"
 
-# Bullseye uses chromium-browser; Bookworm/Trixie use chromium
-if ! $USE_WAYLAND; then
-  sed -i 's|^Exec=chromium |Exec=chromium-browser |' "$AUTOSTART_DIR/calendar-kiosk.desktop"
+CHROMIUM_BIN="chromium"
+$USE_WAYLAND || CHROMIUM_BIN="chromium-browser"   # Bullseye uses chromium-browser
+
+# Flags common to all platforms
+CHROMIUM_FLAGS=(
+  --kiosk
+  --noerrdialogs
+  --disable-infobars
+  --disable-session-crashed-bubble
+  --disable-restore-session-state
+  --no-first-run
+  --disable-sync
+  --password-store=basic
+  --user-data-dir=/tmp/chromium-kiosk
+  --check-for-update-interval=31536000
+)
+$USE_WAYLAND && CHROMIUM_FLAGS+=(--ozone-platform=wayland)
+
+if [[ "$COMPOSITOR" == "labwc" ]]; then
+  # labwc: write chromium directly to the labwc shell autostart — more reliable
+  # than XDG .desktop files which may not be processed by the Pi's labwc session.
+  mkdir -p "$LABWC_CFG_DIR"
+  chown pi:pi "$LABWC_CFG_DIR" 2>/dev/null || true
+  touch "$LABWC_AUTOSTART"
+  chown pi:pi "$LABWC_AUTOSTART" 2>/dev/null || true
+  # Remove any existing chromium line, then append — use a variable so the
+  # command is guaranteed to land on one line regardless of terminal width
+  sudo -u pi sed -i '/chromium/d' "$LABWC_AUTOSTART" 2>/dev/null || true
+  _chromium_cmd="(sleep 8 && $CHROMIUM_BIN ${CHROMIUM_FLAGS[*]} http://localhost/) &"
+  echo "$_chromium_cmd" | sudo -u pi tee -a "$LABWC_AUTOSTART" > /dev/null
+
+  # Hide cursor: set XCURSOR_SIZE=0 in labwc environment
+  LABWC_ENV="$LABWC_CFG_DIR/environment"
+  sudo -u pi touch "$LABWC_ENV"
+  grep -q '^XCURSOR_SIZE' "$LABWC_ENV" 2>/dev/null \
+    || echo "XCURSOR_SIZE=0" | sudo -u pi tee -a "$LABWC_ENV" > /dev/null
+
+  success "labwc autostart: Chromium kiosk → $LABWC_AUTOSTART"
+else
+  # Wayfire / X11: XDG .desktop autostart
+  mkdir -p "$AUTOSTART_DIR"
+  cp "$REPO_DIR/pi/autostart/calendar-kiosk.desktop" "$AUTOSTART_DIR/"
+  [[ "$CHROMIUM_BIN" != "chromium" ]] && \
+    sed -i "s|^Exec=chromium |Exec=$CHROMIUM_BIN |" "$AUTOSTART_DIR/calendar-kiosk.desktop"
+  $USE_WAYLAND && \
+    sed -i "s|--disable-sync|--disable-sync \\\\\n  --ozone-platform=wayland|" \
+      "$AUTOSTART_DIR/calendar-kiosk.desktop"
+  success "XDG autostart: Chromium kiosk → $AUTOSTART_DIR/calendar-kiosk.desktop"
 fi
-success "Kiosk autostart configured."
 
 # ── Screen blanking ───────────────────────────────────────────────────────────
 info "Disabling screen blanking…"
 if $USE_WAYLAND; then
+  if [[ "$COMPOSITOR" == "labwc" ]]; then
+    # labwc: screen blanking is managed by the PIR sensor service via wlopm — no static config needed
+    info "labwc: screen blanking managed by PIR sensor service (wlopm)."
+  else
   # Wayfire: set dpms_timeout and screensaver_timeout to -1 in wayfire.ini
   mkdir -p "$(dirname "$WAYFIRE_CFG")"
   touch "$WAYFIRE_CFG"
@@ -265,6 +360,7 @@ if $USE_WAYLAND; then
     printf '\n[idle]\nscreensaver_timeout = -1\ndpms_timeout = -1\n' \
       | sudo -u pi tee -a "$WAYFIRE_CFG" > /dev/null
   fi
+  fi  # end compositor == wayfire
 else
   # X11 / LXDE-pi: append xset commands to session autostart
   LXDE_AUTO="/etc/xdg/lxsession/LXDE-pi/autostart"
@@ -281,40 +377,55 @@ if [[ "$DISPLAY_ROTATE" -ne 0 ]]; then
   info "Configuring screen rotation…"
 
   if $USE_WAYLAND; then
-    # Wayland / Wayfire — rotation is handled entirely by the compositor.
-    # Do NOT also write display_rotate to config.txt: with the KMS driver the
-    # firmware rotation and Wayfire transform both apply, causing double rotation.
-
     # Detect the connected HDMI output name from sysfs (e.g. HDMI-A-1, HDMI-A-2)
     HDMI_OUTPUT="HDMI-A-1"  # fallback
     for card in /sys/class/drm/card*-HDMI-A-*; do
       if [[ -f "$card/status" ]] && grep -q "^connected" "$card/status" 2>/dev/null; then
-        HDMI_OUTPUT="${card##*card*-}"
+        _card_base="${card##*/}"          # strip path → card1-HDMI-A-2
+        HDMI_OUTPUT="${_card_base#*-}"    # strip cardN- → HDMI-A-2
         break
       fi
     done
     info "Detected Wayland output: $HDMI_OUTPUT"
 
-    mkdir -p "$(dirname "$WAYFIRE_CFG")"
-    touch "$WAYFIRE_CFG"
-    chown pi:pi "$WAYFIRE_CFG" 2>/dev/null || true
+    if [[ "$COMPOSITOR" == "labwc" ]]; then
+      # labwc: apply rotation via wlr-randr in the labwc autostart file.
+      # Do NOT write display_rotate to config.txt — KMS + compositor both applying
+      # rotation causes double rotation.
+      mkdir -p "$LABWC_CFG_DIR"
+      chown pi:pi "$LABWC_CFG_DIR" 2>/dev/null || true
+      touch "$LABWC_AUTOSTART"
+      chown pi:pi "$LABWC_AUTOSTART" 2>/dev/null || true
+      # Remove any existing rotation line, then append the new one
+      sudo -u pi sed -i '/wlr-randr.*--transform/d' "$LABWC_AUTOSTART" 2>/dev/null || true
+      echo "wlr-randr --output $HDMI_OUTPUT --transform $WAYFIRE_TRANSFORM" \
+        | sudo -u pi tee -a "$LABWC_AUTOSTART" > /dev/null
+      success "labwc: wlr-randr --output $HDMI_OUTPUT --transform $WAYFIRE_TRANSFORM → $LABWC_AUTOSTART"
 
-    SECTION="[output:$HDMI_OUTPUT]"
-    if grep -q "^\[output:${HDMI_OUTPUT}\]" "$WAYFIRE_CFG" 2>/dev/null; then
-      # Section exists — update or insert transform line
-      if grep -A5 "^\[output:${HDMI_OUTPUT}\]" "$WAYFIRE_CFG" | grep -q '^transform'; then
-        sudo -u pi sed -i \
-          "/^\[output:${HDMI_OUTPUT}\]/,/^\[/{s/^transform.*/transform = ${WAYFIRE_TRANSFORM}/}" \
-          "$WAYFIRE_CFG"
-      else
-        sudo -u pi sed -i \
-          "/^\[output:${HDMI_OUTPUT}\]/a transform = ${WAYFIRE_TRANSFORM}" "$WAYFIRE_CFG"
-      fi
     else
-      printf '\n[output:%s]\ntransform = %s\n' "$HDMI_OUTPUT" "$WAYFIRE_TRANSFORM" \
-        | sudo -u pi tee -a "$WAYFIRE_CFG" > /dev/null
+      # Wayfire — rotation is handled entirely by the compositor.
+      # Do NOT also write display_rotate to config.txt: with the KMS driver the
+      # firmware rotation and Wayfire transform both apply, causing double rotation.
+      mkdir -p "$(dirname "$WAYFIRE_CFG")"
+      touch "$WAYFIRE_CFG"
+      chown pi:pi "$WAYFIRE_CFG" 2>/dev/null || true
+
+      if grep -q "^\[output:${HDMI_OUTPUT}\]" "$WAYFIRE_CFG" 2>/dev/null; then
+        # Section exists — update or insert transform line
+        if grep -A5 "^\[output:${HDMI_OUTPUT}\]" "$WAYFIRE_CFG" | grep -q '^transform'; then
+          sudo -u pi sed -i \
+            "/^\[output:${HDMI_OUTPUT}\]/,/^\[/{s/^transform.*/transform = ${WAYFIRE_TRANSFORM}/}" \
+            "$WAYFIRE_CFG"
+        else
+          sudo -u pi sed -i \
+            "/^\[output:${HDMI_OUTPUT}\]/a transform = ${WAYFIRE_TRANSFORM}" "$WAYFIRE_CFG"
+        fi
+      else
+        printf '\n[output:%s]\ntransform = %s\n' "$HDMI_OUTPUT" "$WAYFIRE_TRANSFORM" \
+          | sudo -u pi tee -a "$WAYFIRE_CFG" > /dev/null
+      fi
+      success "Wayfire: [output:$HDMI_OUTPUT] transform=$WAYFIRE_TRANSFORM written to $WAYFIRE_CFG"
     fi
-    success "Wayfire: [output:$HDMI_OUTPUT] transform=$WAYFIRE_TRANSFORM written to $WAYFIRE_CFG"
 
   else
     # X11 / Bullseye — firmware-level rotation via config.txt
@@ -341,10 +452,18 @@ echo -e "${GREEN}   Install complete!                     ${NC}"
 echo -e "${GREEN}════════════════════════════════════════${NC}"
 echo ""
 echo "  OS:      $OS_LABEL"
-echo "  Session: $( $USE_WAYLAND && echo 'Wayland / Wayfire' || echo 'X11 / LXDE' )"
+if $USE_WAYLAND; then
+  echo "  Session: Wayland / $COMPOSITOR"
+else
+  echo "  Session: X11 / LXDE"
+fi
 if [[ "$DISPLAY_ROTATE" -ne 0 ]]; then
   if $USE_WAYLAND; then
-    echo "  Rotation: $WAYFIRE_TRANSFORM via Wayfire [output:${HDMI_OUTPUT:-HDMI-A-1}]"
+    if [[ "$COMPOSITOR" == "labwc" ]]; then
+      echo "  Rotation: transform=$WAYFIRE_TRANSFORM via wlr-randr (labwc) [output:${HDMI_OUTPUT:-HDMI-A-1}]"
+    else
+      echo "  Rotation: transform=$WAYFIRE_TRANSFORM via Wayfire [output:${HDMI_OUTPUT:-HDMI-A-1}]"
+    fi
   else
     echo "  Rotation: display_rotate=$DISPLAY_ROTATE in $BOOT_CONFIG"
   fi

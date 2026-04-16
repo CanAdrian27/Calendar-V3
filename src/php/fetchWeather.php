@@ -30,6 +30,11 @@ function debugStyles() {
 
 require_once('incs/stats.php');
 
+$weather_lat      = 46.81;
+$weather_lon      = -71.21;
+$weather_timezone = 'America/New_York';
+if (file_exists('env_vars.php')) include('env_vars.php');
+
 // ── Check if update is needed ─────────────────────────────────────────────────
 $updateNeeded = false;
 $json    = @file_get_contents('weather/report.json');
@@ -60,7 +65,13 @@ if (!$debug) {
 
 // ── Fetch from Open-Meteo ─────────────────────────────────────────────────────
 if ($updateNeeded) {
-  $url = 'https://api.open-meteo.com/v1/forecast?latitude=46.81&longitude=-71.21&current=temperature_2m,apparent_temperature,dew_point_2m,weather_code,wind_speed_10m,wind_direction_10m&hourly=temperature_2m,apparent_temperature,wind_speed_10m,rain,showers,snowfall,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,sunrise,sunset,precipitation_sum,rain_sum,showers_sum,snowfall_sum,precipitation_hours,precipitation_probability_max,wind_speed_10m_max,wind_gusts_10m_max,wind_direction_10m_dominant,uv_index_max&timezone=America%2FNew_York';
+  $url = 'https://api.open-meteo.com/v1/forecast'
+       . '?latitude='  . urlencode($weather_lat)
+       . '&longitude=' . urlencode($weather_lon)
+       . '&current=temperature_2m,apparent_temperature,dew_point_2m,weather_code,wind_speed_10m,wind_direction_10m'
+       . '&hourly=temperature_2m,apparent_temperature,wind_speed_10m,rain,showers,snowfall,weather_code'
+       . '&daily=weather_code,temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,sunrise,sunset,precipitation_sum,rain_sum,showers_sum,snowfall_sum,precipitation_hours,precipitation_probability_max,wind_speed_10m_max,wind_gusts_10m_max,wind_direction_10m_dominant,uv_index_max'
+       . '&timezone=' . urlencode($weather_timezone);
 
   dbg('Fetching URL', $url);
 

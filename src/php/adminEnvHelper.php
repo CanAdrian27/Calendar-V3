@@ -27,10 +27,12 @@ $showsunrisesunset   = true;
 $showmoonphase       = true;
 $showprecipqty       = true;
 $showprecipprob      = false;
+$precip_prob_round   = false;
 $showpreciphours     = false;
 $showuvindex         = false;
 $showdailywind       = false;
 $showhourlywind      = false;
+$weather_stacked     = false;
 $showupcoming        = false;
 $upcoming_weeks      = 4;
 $showdualmonth       = false;
@@ -40,6 +42,9 @@ $event_font_size     = 12;
 $color_scheme        = 'image_low';
 $color_scheme_base   = '#4a90d9';
 $image_height        = 750;
+$weather_lat         = 46.81;
+$weather_lon         = -71.21;
+$weather_timezone    = 'America/New_York';
 $wifi_ssid           = '';
 $wifi_password       = '';
 $pi_base_url         = '';
@@ -55,10 +60,11 @@ function writeEnvVars() {
 	       $show_notes_qr, $show_wifi_qr, $showcurrentweather, $showwindspeed,
 	       $showweathericon, $showtemperature, $showfeelslike_box, $showfeelslike_combo,
 	       $showhourlyweather, $showsunrisesunset, $showmoonphase, $showprecipqty,
-	       $showprecipprob, $showpreciphours, $showuvindex, $showdailywind, $showhourlywind,
-	       $showupcoming, $upcoming_weeks, $showdualmonth,
+	       $showprecipprob, $precip_prob_round, $showpreciphours, $showuvindex, $showdailywind, $showhourlywind,
+	       $weather_stacked, $showupcoming, $upcoming_weeks, $showdualmonth,
 	       $feelslike_mode, $cal_languages, $ui_font,
 	       $event_font_size, $color_scheme, $color_scheme_base, $image_height,
+	       $weather_lat, $weather_lon, $weather_timezone,
 	       $wifi_ssid, $wifi_password, $pi_base_url, $mealieUsername, $mealiePassword, $mealieUrl;
 
 	$php  = "<?php\n";
@@ -85,10 +91,12 @@ function writeEnvVars() {
 	$php .= '$showmoonphase = '       . ($showmoonphase       ? 'true' : 'false') . ";\n";
 	$php .= '$showprecipqty = '       . ($showprecipqty       ? 'true' : 'false') . ";\n";
 	$php .= '$showprecipprob = '      . ($showprecipprob      ? 'true' : 'false') . ";\n";
+	$php .= '$precip_prob_round = '   . ($precip_prob_round   ? 'true' : 'false') . ";\n";
 	$php .= '$showpreciphours = '     . ($showpreciphours     ? 'true' : 'false') . ";\n";
 	$php .= '$showuvindex = '         . ($showuvindex         ? 'true' : 'false') . ";\n";
 	$php .= '$showdailywind = '       . ($showdailywind       ? 'true' : 'false') . ";\n";
 	$php .= '$showhourlywind = '      . ($showhourlywind      ? 'true' : 'false') . ";\n";
+	$php .= '$weather_stacked = '    . ($weather_stacked     ? 'true' : 'false') . ";\n";
 	$php .= '$showupcoming = '        . ($showupcoming        ? 'true' : 'false') . ";\n";
 	$php .= '$upcoming_weeks = '      . (int)$upcoming_weeks                      . ";\n";
 	$php .= '$showdualmonth = '       . ($showdualmonth       ? 'true' : 'false') . ";\n";
@@ -99,9 +107,12 @@ function writeEnvVars() {
 	$php .= '$color_scheme = '        . var_export($color_scheme,      true) . ";\n";
 	$php .= '$color_scheme_base = '   . var_export($color_scheme_base, true) . ";\n";
 	$php .= '$image_height = '        . (int)$image_height                   . ";\n";
-	$php .= '$wifi_ssid = '           . var_export($wifi_ssid,         true) . ";\n";
-	$php .= '$wifi_password = '       . var_export($wifi_password,     true) . ";\n";
-	$php .= '$pi_base_url = '         . var_export($pi_base_url,       true) . ";\n\n";
+	$php .= '$weather_lat = '          . (float)$weather_lat                  . ";\n";
+	$php .= '$weather_lon = '          . (float)$weather_lon                  . ";\n";
+	$php .= '$weather_timezone = '     . var_export($weather_timezone,  true) . ";\n";
+	$php .= '$wifi_ssid = '            . var_export($wifi_ssid,         true) . ";\n";
+	$php .= '$wifi_password = '        . var_export($wifi_password,     true) . ";\n";
+	$php .= '$pi_base_url = '          . var_export($pi_base_url,       true) . ";\n\n";
 	$php .= '$mealieUsername = '      . var_export($mealieUsername,    true) . ";\n";
 	$php .= '$mealiePassword = '      . var_export($mealiePassword,    true) . ";\n";
 	$php .= '$mealieUrl = '           . var_export($mealieUrl,         true) . ";\n";

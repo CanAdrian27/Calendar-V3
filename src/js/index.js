@@ -511,6 +511,7 @@ function loadWeather()
       sunMoonFlags = {
         showsunrisesunset: data.showsunrisesunset,
         showmoonphase:     data.showmoonphase,
+        weather_stacked:   data.weather_stacked,
       };
 
       $(".weatherInABox").remove();
@@ -518,7 +519,31 @@ function loadWeather()
       for (let i = 0; i <7; i++)
       {
 
-        $("td[data-date='"+daily.time[i]+"']>.fc-daygrid-day-frame>.fc-daygrid-day-top>.fc-daygrid-day-number").before('<div class="weatherInABox"><div class="dw_icon_small">'+daily.icon[i]+'</div><div class="dw_temp_contain"><div class="dw_min_temp">'+daily.temperature_2m_min[i]+'<i class="wi wi-celsius""></i></div><div class="dw_max_temp">'+daily.temperature_2m_max[i]+'<i class="wi wi-celsius""></i></div></div></div>')
+        var wibHtml;
+        if (data.weather_stacked) {
+          // Stacked mode: three columns — Icon | lo (top) hi (bottom) | wind (top) gust (bottom)
+          var tempLoHi = '<div class="dw_temp_lo_hi">'
+            + '<div class="dw_min_temp">'+Math.round(daily.temperature_2m_min[i])+'<i class="wi wi-celsius"></i></div>'
+            + '<div class="dw_max_temp">'+Math.round(daily.temperature_2m_max[i])+'<i class="wi wi-celsius"></i></div>'
+            + '</div>';
+          var windTopHtml = '';
+          if (data.showdailywind && daily.wind_speed_10m_max) {
+            windTopHtml = '<div class="dw_wind_top">'
+              + '<div><i class="wi wi-strong-wind"></i> '+Math.round(daily.wind_speed_10m_max[i])+'</div>';
+            if (daily.wind_gusts_10m_max) {
+              windTopHtml += '<div class="dw_gust_line"><i class="wi wi-wind-beaufort-12"></i> '+Math.round(daily.wind_gusts_10m_max[i])+'</div>';
+            }
+            windTopHtml += '</div>';
+          }
+          wibHtml = '<div class="weatherInABox weatherInABox--stacked">'
+            + '<div class="dw_icon_small">'+daily.icon[i]+'</div>'
+            + tempLoHi
+            + windTopHtml
+            + '</div>';
+        } else {
+          wibHtml = '<div class="weatherInABox"><div class="dw_icon_small">'+daily.icon[i]+'</div><div class="dw_temp_contain"><div class="dw_min_temp">'+daily.temperature_2m_min[i]+'<i class="wi wi-celsius""></i></div><div class="dw_max_temp">'+daily.temperature_2m_max[i]+'<i class="wi wi-celsius""></i></div></div></div>';
+        }
+        $("td[data-date='"+daily.time[i]+"']>.fc-daygrid-day-frame>.fc-daygrid-day-top>.fc-daygrid-day-number").before(wibHtml)
 
         var precipArr1  = [daily.rain_sum[i],daily.showers_sum[i],daily.snowfall_sum[i]]
         var activePrecip1 = Math.max.apply(Math, precipArr1);
@@ -541,34 +566,74 @@ function loadWeather()
         }
 
         var extraRow = '';
-        if (data.showprecipqty !== false) {
-          extraRow += '<span class="dw_precip_qty">'+activeIcon+' '+activePrecip1+'<span class="dw_unit"> '+activeUnits+'</span></span>';
-        }
-        if (data.showprecipprob && daily.precipitation_probability_max) {
-          extraRow += '<span class="dw_precipprob"><i class="wi wi-umbrella"></i> ' + daily.precipitation_probability_max[i] + '<span class="dw_unit">%</span></span>';
-        }
-        if (data.showpreciphours && daily.precipitation_hours) {
-          extraRow += '<span class="dw_preciphours"><i class="wi wi-raindrop"></i> ' + daily.precipitation_hours[i] + '<span class="dw_unit">h</span></span>';
-        }
-        if (data.showuvindex && daily.uv_index_max) {
-          extraRow += '<span class="dw_uvindex"><span class="dw_unit">UV</span> ' + Math.round(daily.uv_index_max[i]) + '</span>';
-        }
-
         var windRow = '';
-        if (data.showdailywind && daily.wind_speed_10m_max) {
-          windRow += '<span class="dw_wind_avg"><i class="wi wi-strong-wind"></i> ' + Math.round(daily.wind_speed_10m_max[i]) + '<span class="dw_unit"> '+(data.daily_units.wind_speed_10m_max || 'km/h')+'</span></span>';
-          if (daily.wind_gusts_10m_max) {
-            windRow += '<span class="dw_wind_gust"><i class="wi wi-wind-beaufort-12"></i> ' + Math.round(daily.wind_gusts_10m_max[i]) + '<span class="dw_unit"> '+(data.daily_units.wind_gusts_10m_max || 'km/h')+'</span></span>';
+        var stackedArr = [];
+
+        if (data.weather_stacked) {
+          // Stacked layout: wind+gust is shown in the top box (weatherInABox).
+          // Bottom has up to 3 stacked items: precip+prob, UV+hours, sunrise/sunset (added by loadSunData).
+          if (data.showprecipqty !== false) {
+            var precipItem = '<span class="dw_stacked_item dw_precip_qty"><span class="dw_primary">'+activeIcon+' '+activePrecip1+'<span class="dw_unit"> '+activeUnits+'</span></span>';
+            if (data.showprecipprob && daily.precipitation_probability_max) {
+              var prob = daily.precipitation_probability_max[i];
+              if (data.precip_prob_round) prob = Math.round(prob / 10) * 10;
+              precipItem += '<span class="dw_sub">('+prob+'%)</span>';
+            }
+            precipItem += '</span>';
+            stackedArr.push(precipItem);
+          }
+          var hasUV    = data.showuvindex     && daily.uv_index_max;
+          var hasHours = data.showpreciphours  && daily.precipitation_hours;
+          if (hasUV || hasHours) {
+            var uvHoursItem = '<span class="dw_stacked_item dw_uvindex">';
+            if (hasUV) {
+              uvHoursItem += '<span class="dw_primary"><span class="dw_unit">UV</span> '+Math.round(daily.uv_index_max[i])+'</span>';
+              if (hasHours) uvHoursItem += '<span class="dw_sub"><i class="wi wi-raindrop"></i> '+daily.precipitation_hours[i]+'<span class="dw_unit">h</span></span>';
+            } else {
+              uvHoursItem += '<span class="dw_primary"><i class="wi wi-raindrop"></i> '+daily.precipitation_hours[i]+'<span class="dw_unit">h</span></span>';
+            }
+            uvHoursItem += '</span>';
+            stackedArr.push(uvHoursItem);
+          }
+        } else {
+          // Standard layout: separate rows for precip/wind
+          if (data.showprecipqty !== false) {
+            extraRow += '<span class="dw_precip_qty">'+activeIcon+' '+activePrecip1+'<span class="dw_unit"> '+activeUnits+'</span></span>';
+          }
+          if (data.showprecipprob && daily.precipitation_probability_max) {
+            var prob = daily.precipitation_probability_max[i];
+            if (data.precip_prob_round) prob = Math.round(prob / 10) * 10;
+            extraRow += '<span class="dw_precipprob"><i class="wi wi-umbrella"></i> ' + prob + '<span class="dw_unit">%</span></span>';
+          }
+          if (data.showpreciphours && daily.precipitation_hours) {
+            extraRow += '<span class="dw_preciphours"><i class="wi wi-raindrop"></i> ' + daily.precipitation_hours[i] + '<span class="dw_unit">h</span></span>';
+          }
+          if (data.showuvindex && daily.uv_index_max) {
+            extraRow += '<span class="dw_uvindex"><span class="dw_unit">UV</span> ' + Math.round(daily.uv_index_max[i]) + '</span>';
+          }
+          if (data.showdailywind && daily.wind_speed_10m_max) {
+            windRow += '<span class="dw_wind_avg"><i class="wi wi-strong-wind"></i> ' + Math.round(daily.wind_speed_10m_max[i]) + '<span class="dw_unit"> '+(data.daily_units.wind_speed_10m_max || 'km/h')+'</span></span>';
+            if (daily.wind_gusts_10m_max) {
+              windRow += '<span class="dw_wind_gust"><i class="wi wi-wind-beaufort-12"></i> ' + Math.round(daily.wind_gusts_10m_max[i]) + '<span class="dw_unit"> '+(data.daily_units.wind_gusts_10m_max || 'km/h')+'</span></span>';
+            }
           }
         }
 
         // Remove and rebuild lower box — sun/moon row is populated by loadSunData()
         $("td[data-date='"+daily.time[i]+"']>.fc-daygrid-day-frame>.dw_lower_box").remove();
         var lowerContent = '';
-        if (extraRow) lowerContent += '<div class="dw_extra_row">'+extraRow+'</div>';
-        if (windRow)  lowerContent += '<div class="dw_wind_row">'+windRow+'</div>';
+        if (data.weather_stacked) {
+          if (stackedArr.length) {
+            var manyClass = stackedArr.length > 3 ? ' dw_stacked_row--many' : '';
+            lowerContent += '<div class="dw_stacked_row'+manyClass+'">'+stackedArr.join('')+'</div>';
+          }
+        } else {
+          if (extraRow) lowerContent += '<div class="dw_extra_row">'+extraRow+'</div>';
+          if (windRow)  lowerContent += '<div class="dw_wind_row">'+windRow+'</div>';
+        }
         if (lowerContent) {
-          $("td[data-date='"+daily.time[i]+"']>.fc-daygrid-day-frame").append('<div class="dw_lower_box">'+lowerContent+'</div>');
+          var stackedClass = data.weather_stacked ? ' dw_lower_box--stacked' : '';
+          $("td[data-date='"+daily.time[i]+"']>.fc-daygrid-day-frame").append('<div class="dw_lower_box'+stackedClass+'">'+lowerContent+'</div>');
         }
 
       }
@@ -675,20 +740,42 @@ function loadSunData() {
 
         if (sunMoonFlags.showsunrisesunset === false) return;
 
-        var moonIcon = (sunMoonFlags.showmoonphase && dayData.moon_phase)
-          ? '<span class="dw_moon_phase">' + dayData.moon_phase + '</span>'
-          : '';
-        var sunRow = '<div class="dw_sun_row">'
-          + '<span class="dw_sunrise_contain"><i class="wi wi-sunrise"></i> ' + dayData.sunrise + '</span>'
-          + '<span class="dw_sunset_contain"><i class="wi wi-sunset"></i> '   + dayData.sunset  + '</span>'
-          + moonIcon
-          + '</div>';
-
-        var $lowerBox = $frame.find('.dw_lower_box');
-        if ($lowerBox.length) {
-          $lowerBox.append(sunRow);
+        if (sunMoonFlags.weather_stacked) {
+          // Stacked mode: sunrise on top, sunset as sub-value.
+          // Moon phase floats above the stacked row so it never displaces an item.
+          var sunItem = '<span class="dw_stacked_item dw_sunrise_contain">'
+            + '<span class="dw_primary"><i class="wi wi-sunrise"></i> ' + dayData.sunrise + '</span>'
+            + '<span class="dw_sub"><i class="wi wi-sunset"></i> '      + dayData.sunset  + '</span>'
+            + '</span>';
+          var $lowerBox = $frame.find('.dw_lower_box');
+          var $stackedRow = $lowerBox.find('.dw_stacked_row');
+          if ($stackedRow.length) {
+            $stackedRow.append(sunItem);
+          } else if ($lowerBox.length) {
+            $lowerBox.append('<div class="dw_stacked_row">' + sunItem + '</div>');
+            $lowerBox.addClass('dw_lower_box--stacked');
+          } else {
+            $frame.append('<div class="dw_lower_box dw_lower_box--stacked"><div class="dw_stacked_row">' + sunItem + '</div></div>');
+          }
+          // Moon floats above the stacked row, right-aligned, so it never occupies a slot
+          if (sunMoonFlags.showmoonphase && dayData.moon_phase) {
+            $frame.find('.dw_lower_box').prepend('<div class="dw_moon_above">' + dayData.moon_phase + '</div>');
+          }
         } else {
-          $frame.append('<div class="dw_lower_box">' + sunRow + '</div>');
+          var moonIcon = (sunMoonFlags.showmoonphase && dayData.moon_phase)
+            ? '<span class="dw_moon_phase">' + dayData.moon_phase + '</span>'
+            : '';
+          var sunRow = '<div class="dw_sun_row">'
+            + '<span class="dw_sunrise_contain"><i class="wi wi-sunrise"></i> ' + dayData.sunrise + '</span>'
+            + '<span class="dw_sunset_contain"><i class="wi wi-sunset"></i> '   + dayData.sunset  + '</span>'
+            + moonIcon
+            + '</div>';
+          var $lowerBox = $frame.find('.dw_lower_box');
+          if ($lowerBox.length) {
+            $lowerBox.append(sunRow);
+          } else {
+            $frame.append('<div class="dw_lower_box">' + sunRow + '</div>');
+          }
         }
       });
     }

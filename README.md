@@ -88,7 +88,7 @@ The script is interactive and will ask two questions before doing anything:
 ```
 1) Bullseye  (Debian 11)  —  X11 / LXDE
 2) Bookworm  (Debian 12)  —  Wayland / Wayfire
-3) Trixie    (Debian 13)  —  Wayland / Wayfire
+3) Trixie    (Debian 13)  —  Wayland / labwc
 ```
 
 **Screen rotation** — for portrait wall-mount installs:
@@ -102,15 +102,15 @@ The script is interactive and will ask two questions before doing anything:
 
 `install.sh` then does the following:
 
-1. Installs system packages — correct Chromium package per OS version (`chromium-browser` on Bullseye, `chromium` + `chromium-driver` on Bookworm/Trixie), plus `apache2`, `php`, `php-imagick`, `python3-gpiozero`, GPIO library, and display tools (`xdotool` on X11; `wlopm` on Wayland)
-2. Installs Python packages (`keyboard`, `selenium`) via pip, with `--break-system-packages` on Bookworm/Trixie
+1. Installs system packages — correct Chromium package per OS version (`chromium-browser` on Bullseye, `chromium` + `chromium-driver` on Bookworm/Trixie), plus `apache2`, `php`, `libapache2-mod-php`, `php-imagick`, `python3-gpiozero`, GPIO library, and display tools (`xdotool` on X11; `wlopm` on Wayland; `wlr-randr` on Trixie/labwc)
+2. Installs Python packages (`keyboard`, `selenium`) via pip with `--break-system-packages --ignore-installed` to avoid conflicts with apt-managed packages
 3. Deploys `dist/` to `/var/www/html/dist/` with correct `www-data` permissions
-4. Configures the Apache vhost (points to `/var/www/html/dist/`, disables the default site)
+4. Configures Apache — updates `000-default.conf` to point `DocumentRoot` at `/var/www/html/dist/` and enables `mod_rewrite`
 5. Copies Python scripts to `/usr/local/lib/calendar/` and patches `motion.py` to use the correct display-control command for the selected session type (`xset dpms` on X11; `wlopm` on Wayland)
 6. Installs and enables the `calendar-motion` systemd service and `calendar-scrape` timer, patching the service environment for Wayland if needed
-7. Installs the Chromium kiosk autostart entry (`~/.config/autostart/`)
-8. Disables screen blanking — via LXDE autostart on Bullseye, or via `wayfire.ini` idle settings on Bookworm/Trixie
-9. Applies screen rotation if requested — writes `display_rotate=N` to the boot config, and adds a Wayfire `[output:HDMI-A-1]` transform on Wayland installs
+7. Configures Chromium kiosk autostart — writes the launch command to `~/.config/labwc/autostart` on Trixie, or to `~/.config/autostart/calendar-kiosk.desktop` on Bookworm/Bullseye
+8. Disables screen blanking — via LXDE autostart on Bullseye, `wayfire.ini` idle settings on Bookworm, or PIR sensor service (`wlopm`) on Trixie/labwc
+9. Applies screen rotation if requested — `display_rotate` in boot config on Bullseye, Wayfire `[output:X]` transform on Bookworm, or `wlr-randr` in `~/.config/labwc/autostart` on Trixie (output auto-detected from sysfs)
 10. Sets the Pi to boot to desktop with autologin
 
 ### 4. Configure
@@ -192,7 +192,7 @@ Each toggle switch needs a 1kΩ resistor (1kΩ–10kΩ works). The refresh and t
 
 ### Motion sensor
 
-Connect a standard HC-SR501 or compatible PIR sensor to GPIO4 (BCM). The sensor controls display power — turning the screen off after 15 minutes of no motion and back on when motion is detected. `install.sh` patches `motion.py` to use the correct method: `xset dpms` on X11 (Bullseye), or `wlopm` on Wayland (Bookworm/Trixie).
+Connect a standard HC-SR501 or compatible PIR sensor to GPIO4 (BCM). The sensor controls display power — turning the screen off after 15 minutes of no motion and back on when motion is detected. `install.sh` patches `motion.py` to use the correct method: `xset dpms` on X11 (Bullseye), or `wlopm` on Wayland (Bookworm/Trixie/labwc).
 
 ---
 

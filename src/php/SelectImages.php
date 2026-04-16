@@ -46,6 +46,14 @@
 	$imageFiles = is_dir($dir) ? array_filter(scandir($dir), fn($f) => $f[0] !== '.') : [];
 
 	if (count($imageFiles) === 0) {
+		// No images uploaded yet — try to fetch a placeholder from Unsplash/picsum
+		$fetched = fetchFallbackImage($dir, $support_dir);
+		if ($fetched) {
+			$imageFiles = [$fetched];
+		}
+	}
+
+	if (count($imageFiles) === 0) {
 		$images = [
 			'image'      => '',
 			'background' => '',
@@ -72,7 +80,7 @@
 
 	if ($debug) {
 		echo debugPageHeader('SelectImages');
-		echo '<div class="dbg-row"><span class="dbg-label">Images directory</span><span class="dbg-val">' . htmlspecialchars($dir) . ' — ' . count($imageFiles) . ' image(s)</span></div>';
+		echo '<div class="dbg-row"><span class="dbg-label">Images directory</span><span class="dbg-val">' . htmlspecialchars($dir) . ' — ' . count($imageFiles) . ' image(s)' . (count($imageFiles) === 1 && isset($fetched) && $fetched ? ' (fallback downloaded)' : '') . '</span></div>';
 		echo '<div class="dbg-row"><span class="dbg-label">Selected image</span><span class="dbg-val">' . htmlspecialchars($images['image'] ?: '(none)') . '</span></div>';
 		echo '<div class="dbg-row"><span class="dbg-label">Dominant color</span><span class="dbg-val">r=' . ($images['color']['r'] ?? '?') . ' g=' . ($images['color']['g'] ?? '?') . ' b=' . ($images['color']['b'] ?? '?') . '</span></div>';
 		echo '<div class="dbg-row"><span class="dbg-label">Colour scheme</span><span class="dbg-val">' . htmlspecialchars($color_scheme) . '</span></div>';
@@ -86,6 +94,78 @@
 		echo debugPageFooter();
 	} else {
 		echo json_encode($retArr);
+	}
+
+	// Downloads a random nature photo from Unsplash (with picsum fallback) when
+	// the images/ folder is empty. Saves the image and generates the required
+	// support files so makeCalBackground() works on the next request too.
+	function fetchFallbackImage($dir, $support_dir) {
+		$sources = [
+			'https://source.unsplash.com/1080x1920/?nature,landscape',
+			'https://picsum.photos/1080/1920',
+		];
+
+		$imageData = null;
+		foreach ($sources as $url) {
+			$curl = curl_init();
+			curl_setopt_array($curl, [
+				CURLOPT_URL            => $url,
+				CURLOPT_RETURNTRANSFER => true,
+				CURLOPT_FOLLOWLOCATION => true,
+				CURLOPT_TIMEOUT        => 15,
+				CURLOPT_USERAGENT      => 'Mozilla/5.0 (compatible; CalendarV3)',
+			]);
+			$data     = curl_exec($curl);
+			$httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+			curl_close($curl);
+
+			if ($data && $httpCode === 200) {
+				$imageData = $data;
+				break;
+			}
+		}
+
+		if (!$imageData) return null;
+
+		// Save the downloaded image with a random hex filename
+		$stem     = bin2hex(random_bytes(10));
+		$filename = $stem . '.jpg';
+		if (!is_dir($dir))         mkdir($dir, 0775, true);
+		if (!is_dir($support_dir)) mkdir($support_dir, 0775, true);
+
+		if (file_put_contents($dir . $filename, $imageData) === false) return null;
+
+		// Generate support files using the same pipeline as processImages.php:
+		// 1. Crop a 100×100 block from the bottom of the image
+		// 2. Gaussian-blur it (used as stretched CSS background)
+		// 3. Resize to 1×1 for dominant colour extraction
+		try {
+			$imagick = new \Imagick();
+			$imagick->readImageBlob($imageData);
+			$geos    = $imagick->getImageGeometry();
+			$size    = 100;
+			$startX  = rand(0, max(0, (int)floor($geos['height'] / $size)));
+			$startY  = max(0, $geos['height'] - $size);
+			$imagick->cropImage($size, $size, $startX, $startY);
+			$imagick->writeImage($support_dir . $stem . '_1.jpg');
+			$imagick->destroy();
+
+			$blur = new \Imagick(realpath($support_dir . $stem . '_1.jpg'));
+			$blur->gaussianBlurImage(10, 100);
+			$blur->writeImage($support_dir . $stem . '_1.jpg');
+			$blur->destroy();
+
+			$small = new \Imagick(realpath($support_dir . $stem . '_1.jpg'));
+			$small->resizeImage(1, 1, \Imagick::FILTER_LANCZOS, 1);
+			$small->writeImage($support_dir . $stem . '_small.jpg');
+			$small->destroy();
+		} catch (\Exception $e) {
+			// ImageMagick failed — image is saved but unprocessed; makeCalBackground
+			// will still serve it (it falls back to unprocessed files).
+			return $filename;
+		}
+
+		return $filename;
 	}
 
 	function debugPageHeader($title) {

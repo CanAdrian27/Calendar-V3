@@ -97,10 +97,12 @@ $weather->showsunrisesunset    = isset($showsunrisesunset)   ? (bool)$showsunris
 $weather->showmoonphase        = isset($showmoonphase)       ? (bool)$showmoonphase       : true;
 $weather->showprecipqty        = isset($showprecipqty)       ? (bool)$showprecipqty       : true;
 $weather->showprecipprob       = isset($showprecipprob)      ? (bool)$showprecipprob      : false;
+$weather->precip_prob_round    = isset($precip_prob_round)   ? (bool)$precip_prob_round   : false;
 $weather->showpreciphours      = isset($showpreciphours)     ? (bool)$showpreciphours     : false;
 $weather->showuvindex          = isset($showuvindex)         ? (bool)$showuvindex         : false;
 $weather->showdailywind        = isset($showdailywind)       ? (bool)$showdailywind       : false;
 $weather->showhourlywind       = isset($showhourlywind)      ? (bool)$showhourlywind      : false;
+$weather->weather_stacked      = isset($weather_stacked)     ? (bool)$weather_stacked     : false;
 
 if ($debug) {
 	echo debugPageHeader('loadWeather');
@@ -113,7 +115,7 @@ if ($debug) {
 	echo '<div class="dbg-row"><span class="dbg-label">Weather code</span><span class="dbg-val">' . htmlspecialchars($weather->current_weather->weathercode ?? '?') . '</span></div>';
 	echo '<div class="dbg-row"><span class="dbg-label">Daily forecast days</span><span class="dbg-val">' . count((array)($weather->daily->time ?? [])) . '</span></div>';
 	echo '<h2>Show Flags</h2>';
-	$flags = ['showclock','showcurrentweather','showwindspeed','showweathericon','showtemperature','showfeelslike_box','showfeelslike_combo','feelslike_mode','showhourlyweather','showsunrisesunset','showmoonphase','showprecipqty','showprecipprob','showpreciphours','showuvindex'];
+	$flags = ['showclock','showcurrentweather','showwindspeed','showweathericon','showtemperature','showfeelslike_box','showfeelslike_combo','feelslike_mode','showhourlyweather','showsunrisesunset','showmoonphase','showprecipqty','showprecipprob','showpreciphours','showuvindex','showdailywind','showhourlywind','weather_stacked'];
 	foreach ($flags as $f) {
 		echo '<div class="dbg-row"><span class="dbg-label">' . $f . '</span><span class="dbg-val">' . ($weather->$f ? 'true' : 'false') . '</span></div>';
 	}
