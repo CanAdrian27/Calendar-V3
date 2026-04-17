@@ -230,9 +230,16 @@ function searchWeatherCity() {
 				var label = r.name
 					+ (r.admin1 ? ', ' + r.admin1 : '')
 					+ ', ' + r.country;
-				html += '<button type="button" class="btn-secondary" style="text-align:left;padding:8px 12px;cursor:pointer"'
-					+ ' onclick="selectWeatherCity(' + r.latitude + ',' + r.longitude + ','
-					+ JSON.stringify(r.timezone) + ',' + JSON.stringify(label) + ')">'
+				// Store data in attributes — JSON.stringify produces double-quoted strings
+				// which break onclick="" HTML attributes; data-* attributes are safe.
+				var safeName = label.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+				var safeTz   = (r.timezone || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+				html += '<button type="button" class="btn-secondary city-result"'
+					+ ' style="text-align:left;padding:8px 12px"'
+					+ ' data-lat="' + r.latitude + '"'
+					+ ' data-lon="' + r.longitude + '"'
+					+ ' data-tz="'  + safeTz + '"'
+					+ ' data-name="' + safeName + '">'
 					+ '<span style="font-weight:600">' + label + '</span>'
 					+ '<small style="display:block;color:#888;font-size:11px;margin-top:2px">'
 					+ 'Lat: ' + r.latitude + ' &nbsp; Lon: ' + r.longitude + ' &nbsp; ' + r.timezone
@@ -245,13 +252,17 @@ function searchWeatherCity() {
 			resultsDiv.innerHTML = '<p style="font-size:13px;color:#c00;margin:0">Search failed — check your internet connection.</p>';
 		});
 }
-function selectWeatherCity(lat, lon, timezone, name) {
-	document.getElementById('weather_lat').value = lat;
-	document.getElementById('weather_lon').value = lon;
-	document.getElementById('weather_timezone').value = timezone;
-	document.getElementById('city-search').value = name;
+
+// Delegated click handler — avoids inline onclick with quoted strings in HTML attributes
+document.getElementById('city-results').addEventListener('click', function(e) {
+	var btn = e.target.closest('.city-result');
+	if (!btn) return;
+	document.getElementById('weather_lat').value      = btn.dataset.lat;
+	document.getElementById('weather_lon').value      = btn.dataset.lon;
+	document.getElementById('weather_timezone').value = btn.dataset.tz;
+	document.getElementById('city-search').value      = btn.dataset.name;
 	document.getElementById('city-results').style.display = 'none';
-}
+});
 </script>
 
 </body>

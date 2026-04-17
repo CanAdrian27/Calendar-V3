@@ -44,13 +44,14 @@ $color_scheme_base   = '#4a90d9';
 $image_height        = 750;
 $weather_lat         = 46.81;
 $weather_lon         = -71.21;
-$weather_timezone    = 'America/New_York';
+$weather_timezone    = 'America/Toronto';
 $wifi_ssid           = '';
 $wifi_password       = '';
 $pi_base_url         = '';
 $mealieUsername      = '';
 $mealiePassword      = '';
 $mealieUrl           = '';
+$unsplash_key        = '';
 
 if (file_exists('env_vars.php')) include('env_vars.php');
 
@@ -65,7 +66,8 @@ function writeEnvVars() {
 	       $feelslike_mode, $cal_languages, $ui_font,
 	       $event_font_size, $color_scheme, $color_scheme_base, $image_height,
 	       $weather_lat, $weather_lon, $weather_timezone,
-	       $wifi_ssid, $wifi_password, $pi_base_url, $mealieUsername, $mealiePassword, $mealieUrl;
+	       $wifi_ssid, $wifi_password, $pi_base_url, $mealieUsername, $mealiePassword, $mealieUrl,
+	       $unsplash_key;
 
 	$php  = "<?php\n";
 	$php .= '$calendars = '           . var_export($calendars,        true) . ";\n\n";
@@ -116,6 +118,7 @@ function writeEnvVars() {
 	$php .= '$mealieUsername = '      . var_export($mealieUsername,    true) . ";\n";
 	$php .= '$mealiePassword = '      . var_export($mealiePassword,    true) . ";\n";
 	$php .= '$mealieUrl = '           . var_export($mealieUrl,         true) . ";\n";
+	$php .= '$unsplash_key = '        . var_export($unsplash_key,      true) . ";\n";
 
 	return file_put_contents('env_vars.php', $php) !== false;
 }

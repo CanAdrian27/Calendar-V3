@@ -834,7 +834,20 @@ function SelectImages()
         data1.font_link +
         '<style>html,body { background-image:'+data1.blurry+'; background-size: cover; background-repeat: no-repeat; }'+data1.alpha_color+'</style>'
       )
-      
+
+      // Show a small QR → admin gallery when using auto-fetched fallback images
+      if (data1.unsplash_mode) {
+        var galleryUrl = window.location.href.replace(/\/[^\/]*(\?.*)?$/, '/') + 'adminGallery.php';
+        QRCode.toDataURL(galleryUrl, { width: 80, margin: 1, color: { dark: '#000000', light: '#ffffff' } })
+          .then(function(dataUrl) {
+            $('#unsplash-qr').html(
+              '<img src="' + dataUrl + '" width="80" height="80" alt="Admin gallery">' +
+              '<div class="unsplash-qr-label">Add photos</div>'
+            );
+          });
+      } else {
+        $('#unsplash-qr').empty();
+      }
     }
   });
 }

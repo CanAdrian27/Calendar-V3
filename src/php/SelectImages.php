@@ -18,6 +18,7 @@
 	$color_scheme    = isset($color_scheme)      ? $color_scheme          : 'image_low';
 	$color_scheme_base = isset($color_scheme_base) ? $color_scheme_base   : '#4a90d9';
 	$image_height    = isset($image_height)      ? max(200, min(1800, (int)$image_height)) : 750;
+	$unsplash_key    = isset($unsplash_key)      ? $unsplash_key : '';
 
 	// Google Fonts URL for each supported font (IBM Plex Sans is already bundled in layout.css).
 	$font_urls = [
@@ -43,15 +44,23 @@
 		? '<link rel="stylesheet" href="' . htmlspecialchars($font_url) . '">'
 		: '';
 
-	$imageFiles = is_dir($dir) ? array_filter(scandir($dir), fn($f) => $f[0] !== '.') : [];
+	// Separate user-uploaded images from auto-fetched fallbacks (unsplash_ prefix)
+	$allFiles   = is_dir($dir) ? array_values(array_filter(scandir($dir), fn($f) => $f[0] !== '.')) : [];
+	$userImages = array_values(array_filter($allFiles, fn($f) => strncmp($f, 'unsplash_', 9) !== 0));
+	$isUnsplash = false;
 
-	if (count($imageFiles) === 0) {
-		// No images uploaded yet — try to fetch a placeholder from Unsplash/picsum
-		$fetched = fetchFallbackImage($dir, $support_dir);
-		if ($fetched) {
-			$imageFiles = [$fetched];
-		}
+	if (count($userImages) === 0) {
+		// No user-uploaded images — delete any stale fallback and fetch a fresh one
+		cleanUnsplashImages($dir, $support_dir);
+		$fetched = fetchFallbackImage($dir, $support_dir, $unsplash_key);
+		if ($fetched) $isUnsplash = true;
+	} else {
+		// User has their own images — purge any leftover unsplash fallbacks
+		cleanUnsplashImages($dir, $support_dir);
 	}
+
+	// Re-scan after any downloads/deletions so makeCalBackground sees current state
+	$imageFiles = is_dir($dir) ? array_values(array_filter(scandir($dir), fn($f) => $f[0] !== '.')) : [];
 
 	if (count($imageFiles) === 0) {
 		$images = [
@@ -74,13 +83,14 @@
 
 	$extra_css = "--ae-font-family:'" . addslashes($ui_font) . "';--ae-event-font-size:{$event_font_size}px;--ae-image-height:{$image_height}px;";
 
-	$retArr['image']       = $images['image'];
-	$retArr['blurry']      = $images['background'];
-	$retArr['alpha_color'] = ':root{' . setColours($images, $alpha, $color_scheme, $color_scheme_base) . $extra_css . '}';
+	$retArr['image']        = $images['image'];
+	$retArr['blurry']       = $images['background'];
+	$retArr['alpha_color']  = ':root{' . setColours($images, $alpha, $color_scheme, $color_scheme_base) . $extra_css . '}';
+	$retArr['unsplash_mode'] = $isUnsplash;
 
 	if ($debug) {
 		echo debugPageHeader('SelectImages');
-		echo '<div class="dbg-row"><span class="dbg-label">Images directory</span><span class="dbg-val">' . htmlspecialchars($dir) . ' — ' . count($imageFiles) . ' image(s)' . (count($imageFiles) === 1 && isset($fetched) && $fetched ? ' (fallback downloaded)' : '') . '</span></div>';
+		echo '<div class="dbg-row"><span class="dbg-label">Images directory</span><span class="dbg-val">' . htmlspecialchars($dir) . ' — ' . count($userImages) . ' user image(s), ' . count($imageFiles) . ' total' . ($isUnsplash ? ' (unsplash fallback)' : '') . '</span></div>';
 		echo '<div class="dbg-row"><span class="dbg-label">Selected image</span><span class="dbg-val">' . htmlspecialchars($images['image'] ?: '(none)') . '</span></div>';
 		echo '<div class="dbg-row"><span class="dbg-label">Dominant color</span><span class="dbg-val">r=' . ($images['color']['r'] ?? '?') . ' g=' . ($images['color']['g'] ?? '?') . ' b=' . ($images['color']['b'] ?? '?') . '</span></div>';
 		echo '<div class="dbg-row"><span class="dbg-label">Colour scheme</span><span class="dbg-val">' . htmlspecialchars($color_scheme) . '</span></div>';
@@ -96,39 +106,78 @@
 		echo json_encode($retArr);
 	}
 
-	// Downloads a random nature photo from Unsplash (with picsum fallback) when
-	// the images/ folder is empty. Saves the image and generates the required
-	// support files so makeCalBackground() works on the next request too.
-	function fetchFallbackImage($dir, $support_dir) {
-		$sources = [
-			'https://source.unsplash.com/1080x1920/?nature,landscape',
-			'https://picsum.photos/1080/1920',
-		];
+	// Deletes all unsplash_ prefixed images and their support files from the images dirs.
+	function cleanUnsplashImages($dir, $support_dir) {
+		if (!is_dir($dir)) return;
+		foreach (scandir($dir) as $f) {
+			if (strncmp($f, 'unsplash_', 9) !== 0) continue;
+			@unlink($dir . $f);
+			$stem = pathinfo($f, PATHINFO_FILENAME);
+			@unlink($support_dir . $stem . '_1.jpg');
+			@unlink($support_dir . $stem . '_small.jpg');
+		}
+	}
 
+	// Downloads a fresh random photo on every call — no caching.
+	// Uses the Unsplash API if $unsplash_key is set; falls back to picsum.photos.
+	// Saves with an unsplash_ prefix so cleanUnsplashImages() can find it.
+	function fetchFallbackImage($dir, $support_dir, $unsplash_key = '') {
 		$imageData = null;
-		foreach ($sources as $url) {
+
+		// ── Unsplash API (requires an access key) ────────────────────────────────
+		if ($unsplash_key) {
+			$apiUrl = 'https://api.unsplash.com/photos/random?query=nature,landscape,scenery&orientation=landscape&client_id=' . urlencode($unsplash_key);
 			$curl = curl_init();
 			curl_setopt_array($curl, [
-				CURLOPT_URL            => $url,
+				CURLOPT_URL            => $apiUrl,
+				CURLOPT_RETURNTRANSFER => true,
+				CURLOPT_TIMEOUT        => 10,
+				CURLOPT_USERAGENT      => 'CalendarV3/1.0',
+			]);
+			$apiResp = curl_exec($curl);
+			$apiCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+			curl_close($curl);
+
+			if ($apiResp && $apiCode === 200) {
+				$photo    = json_decode($apiResp);
+				$imageUrl = $photo->urls->regular ?? null;
+				if ($imageUrl) {
+					$curl = curl_init();
+					curl_setopt_array($curl, [
+						CURLOPT_URL            => $imageUrl,
+						CURLOPT_RETURNTRANSFER => true,
+						CURLOPT_FOLLOWLOCATION => true,
+						CURLOPT_TIMEOUT        => 20,
+						CURLOPT_USERAGENT      => 'CalendarV3/1.0',
+					]);
+					$data = curl_exec($curl);
+					$code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+					curl_close($curl);
+					if ($data && $code === 200) $imageData = $data;
+				}
+			}
+		}
+
+		// ── picsum.photos fallback (no key required, different image every call) ─
+		if (!$imageData) {
+			$curl = curl_init();
+			curl_setopt_array($curl, [
+				CURLOPT_URL            => 'https://picsum.photos/1920/1080?random=' . time(),
 				CURLOPT_RETURNTRANSFER => true,
 				CURLOPT_FOLLOWLOCATION => true,
 				CURLOPT_TIMEOUT        => 15,
-				CURLOPT_USERAGENT      => 'Mozilla/5.0 (compatible; CalendarV3)',
+				CURLOPT_USERAGENT      => 'CalendarV3/1.0',
 			]);
-			$data     = curl_exec($curl);
-			$httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+			$data = curl_exec($curl);
+			$code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
 			curl_close($curl);
-
-			if ($data && $httpCode === 200) {
-				$imageData = $data;
-				break;
-			}
+			if ($data && $code === 200) $imageData = $data;
 		}
 
 		if (!$imageData) return null;
 
-		// Save the downloaded image with a random hex filename
-		$stem     = bin2hex(random_bytes(10));
+		// Save with unsplash_ prefix (one file at a time, cleaned before each fetch)
+		$stem     = 'unsplash_' . bin2hex(random_bytes(8));
 		$filename = $stem . '.jpg';
 		if (!is_dir($dir))         mkdir($dir, 0775, true);
 		if (!is_dir($support_dir)) mkdir($support_dir, 0775, true);

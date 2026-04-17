@@ -1,3 +1,21 @@
+<?php
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
+
+require_once('adminEnvHelper.php');
+
+$saved = false;
+$error = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['unsplash_key'])) {
+	$unsplash_key = trim($_POST['unsplash_key'] ?? '');
+	if (writeEnvVars()) {
+		$saved = true;
+	} else {
+		$error = 'Could not write env_vars.php — check file permissions.';
+	}
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -76,6 +94,12 @@
 
 <h1>Background Images</h1>
 
+<?php if ($saved): ?>
+	<div class="notice success">✓ Settings saved.</div>
+<?php elseif ($error): ?>
+	<div class="notice error">⚠ <?= htmlspecialchars($error) ?></div>
+<?php endif; ?>
+
 <div class="card">
 	<h2>Upload Images</h2>
 	<div class="upload-zone" id="upload-zone">
@@ -95,6 +119,23 @@
 		<button type="button" class="btn-secondary" onclick="processImages()">⚙ Process Images</button>
 		<span id="process-status" style="font-size:13px;color:#555"></span>
 	</div>
+</div>
+
+<div class="card">
+	<h2>Fallback Images</h2>
+	<p class="card-hint">When no images are uploaded, the display fetches a random photo on every refresh. picsum.photos is used by default (no key needed). Add an Unsplash API access key to pull curated nature and landscape photos instead.</p>
+	<form method="POST">
+		<div class="form-row">
+			<label for="unsplash_key">Unsplash Access Key</label>
+			<input type="text" id="unsplash_key" name="unsplash_key"
+			       value="<?= htmlspecialchars($unsplash_key) ?>"
+			       placeholder="Leave blank to use picsum.photos">
+		</div>
+		<p class="card-hint" style="margin-top:8px">Get a free key at <strong>unsplash.com/developers</strong> (50 requests/hour on the free tier).</p>
+		<div class="form-actions">
+			<button type="submit" class="btn-primary">Save</button>
+		</div>
+	</form>
 </div>
 
 <!-- ── Crop modal ────────────────────────────────────────────────────────── -->

@@ -8,6 +8,7 @@ $saved = false;
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+	$pi_base_url     = rtrim(trim($_POST['pi_base_url'] ?? $pi_base_url), '/');
 	$showweekly      = isset($_POST['showweekly']);
 	$showupcoming    = isset($_POST['showupcoming']);
 	$upcoming_weeks  = max(1, min(12, (int)($_POST['upcoming_weeks'] ?? 4)));
@@ -44,6 +45,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <?php endif; ?>
 
 <form method="POST">
+
+	<div class="card">
+		<h2>Pi Address</h2>
+		<p class="card-hint">The Pi's address on your local network — used for the "Edit Notes" QR code on the display.</p>
+		<label for="pi_base_url">Base URL</label>
+		<div style="display:flex;gap:8px;align-items:center">
+			<input type="text" id="pi_base_url" name="pi_base_url"
+			       value="<?= htmlspecialchars($pi_base_url) ?>"
+			       placeholder="http://192.168.1.42" autocomplete="off" style="flex:1;margin-bottom:0">
+			<button type="button" class="btn-secondary"
+			        onclick="document.getElementById('pi_base_url').value='http://'+window.location.hostname">Detect</button>
+		</div>
+	</div>
 
 	<div class="card">
 		<h2>Pages</h2>

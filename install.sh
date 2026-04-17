@@ -182,6 +182,26 @@ for dir in images images_supports weather calendars ski word notes; do
 done
 success "Web root deployed."
 
+# ── Default configuration ─────────────────────────────────────────────────────
+# Create env_vars.php with sensible defaults if it doesn't already exist.
+# This is skipped on re-deploys so existing settings are never overwritten.
+if [[ ! -f "$WEB_ROOT/env_vars.php" ]]; then
+  PI_IP=$(hostname -I 2>/dev/null | awk '{print $1}')
+  PI_URL="${PI_IP:+http://${PI_IP}}"
+  sudo tee "$WEB_ROOT/env_vars.php" > /dev/null <<EOF
+<?php
+\$weather_lat      = 46.8139;
+\$weather_lon      = -71.208;
+\$weather_timezone = 'America/Toronto';
+\$pi_base_url      = '${PI_URL}';
+EOF
+  sudo chown www-data:www-data "$WEB_ROOT/env_vars.php"
+  sudo chmod 644 "$WEB_ROOT/env_vars.php"
+  info "Created default env_vars.php — location: Quebec City, Pi URL: ${PI_URL:-not detected}"
+else
+  info "env_vars.php already exists — skipping default creation."
+fi
+
 # ── PHP configuration ─────────────────────────────────────────────────────────
 info "Configuring PHP upload limits…"
 
